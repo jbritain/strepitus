@@ -1,0 +1,13 @@
+[versions]
+kotlin = "2.2.21"
+
+compose = "1.9.1"
+compose-fluent = "v0.1.0"
+compose-hot-reload = "1.0.0-beta03"
+
+[plugins]
+kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+compose = { id = "org.jetbrains.compose", version.ref = "compose" }
+compose-hotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "compose-hot-reload" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+compose-fluent = { id = "io.github.compose-fluent:fluent", version.ref = "compose-fluent" }
