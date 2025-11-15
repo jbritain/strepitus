@@ -17,16 +17,23 @@ repositories {
 }
 
 dependencies {
+    implementation(compose.desktop.currentOs)
+
     implementation(platform("org.lwjgl:lwjgl-bom:${libs.versions.lwjgl.get()}"))
 
     implementation("org.lwjgl", "lwjgl")
     implementation("org.lwjgl", "lwjgl-glfw")
     implementation("org.lwjgl", "lwjgl-opengl")
     implementation("org.lwjgl", "lwjgl-stb")
+    implementation("org.lwjgl", "lwjgl-jawt")
     runtimeOnly("org.lwjgl", "lwjgl", classifier = "natives-windows")
     runtimeOnly("org.lwjgl", "lwjgl-glfw", classifier = "natives-windows")
     runtimeOnly("org.lwjgl", "lwjgl-opengl", classifier = "natives-windows")
     runtimeOnly("org.lwjgl", "lwjgl-stb", classifier = "natives-windows")
+
+    implementation(libs.lwjgl3.awt) {
+        exclude(group = "org.lwjgl")
+    }
 
     implementation(libs.joml)
 

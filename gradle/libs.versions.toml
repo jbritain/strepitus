@@ -7,10 +7,11 @@ compose-hot-reload = "1.0.0-beta03"
 
 kotlinx-coroutines = "1.9.0"
 
-lwjgl = "3.3.6"
+lwjgl = "3.3.5"
 joml = "1.10.5"
 glWrapper = "1.1.0"
 kmogus = "1.1-SNAPSHOT"
+lwjgl3Awt = "0.2.3"
 
 [plugins]
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -30,6 +31,8 @@ glWrapper-lwjgl3 = { module = "dev.luna5ama:gl-wrapper-lwjgl-3", version.ref = "
 
 kmogus-core = { module = "dev.luna5ama:kmogus-core", version.ref = "kmogus" }
 kmogus-joml = { module = "dev.luna5ama:kmogus-joml", version.ref = "kmogus" }
+
+lwjgl3-awt = { module = "org.lwjglx:lwjgl3-awt", version.ref = "lwjgl3Awt" }
 
 [bundles]
 kotlinEcosystem = ["kotlin-reflect", "kotlinx-coroutines"]
