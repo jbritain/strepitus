@@ -5,9 +5,33 @@ compose = "1.9.1"
 compose-fluent = "v0.1.0"
 compose-hot-reload = "1.0.0-beta03"
 
+kotlinx-coroutines = "1.9.0"
+
+lwjgl = "3.3.6"
+joml = "1.10.5"
+glWrapper = "1.1.0"
+kmogus = "1.1-SNAPSHOT"
+
 [plugins]
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 compose = { id = "org.jetbrains.compose", version.ref = "compose" }
 compose-hotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "compose-hot-reload" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 compose-fluent = { id = "io.github.compose-fluent:fluent", version.ref = "compose-fluent" }
+
+[libraries]
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
+kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+
+joml = { module = "org.joml:joml", version.ref = "joml" }
+
+glWrapper-core = { module = "dev.luna5ama:gl-wrapper-core", version.ref = "glWrapper" }
+glWrapper-lwjgl3 = { module = "dev.luna5ama:gl-wrapper-lwjgl-3", version.ref = "glWrapper" }
+
+kmogus-core = { module = "dev.luna5ama:kmogus-core", version.ref = "kmogus" }
+kmogus-joml = { module = "dev.luna5ama:kmogus-joml", version.ref = "kmogus" }
+
+[bundles]
+kotlinEcosystem = ["kotlin-reflect", "kotlinx-coroutines"]
+glWrapper = ["glWrapper-core", "glWrapper-lwjgl3"]
+kmogus = ["kmogus-core", "kmogus-joml"]
