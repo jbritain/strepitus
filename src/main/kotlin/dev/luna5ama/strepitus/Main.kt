@@ -6,6 +6,11 @@ import androidx.compose.ui.scene.*
 import androidx.compose.ui.unit.*
 import dev.luna5ama.strepitus.gl.GlfwCoroutineDispatcher
 import dev.luna5ama.strepitus.gl.subscribeToGLFWEvents
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import org.jetbrains.skia.*
 import org.jetbrains.skia.Color
 import org.jetbrains.skiko.FrameDispatcher
@@ -102,7 +107,11 @@ fun main() {
     composeScene.setContent { App(renderer) }
     glfwShowWindow(windowHandle)
 
+    val scope = CoroutineScope(glfwDispatcher)
+
+
     glfwDispatcher.runLoop()
+//    l.cancel()
 
     composeScene.close()
     glfwDestroyWindow(windowHandle)

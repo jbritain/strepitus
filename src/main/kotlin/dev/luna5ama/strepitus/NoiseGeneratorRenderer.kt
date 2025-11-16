@@ -49,11 +49,11 @@ class NoiseGeneratorRenderer(
         image("uimg_outputImage", outputImage)
         sampler("usam_outputImageTiling", outputImage, samplerManager.get {
             filter(FilterMode.Linear, FilterMode.Linear)
-            wrap(WrapMode.Repeat, WrapMode.Repeat, WrapMode.Repeat)
+            wrap(WrapMode.Repeat, WrapMode.Repeat, WrapMode.ClampToEdge)
         })
         sampler("usam_outputImage", outputImage, samplerManager.get {
             filter(FilterMode.Linear, FilterMode.Linear)
-            wrap(WrapMode.ClampToBorder, WrapMode.ClampToBorder, WrapMode.ClampToBorder)
+            wrap(WrapMode.ClampToBorder, WrapMode.ClampToBorder, WrapMode.ClampToEdge)
             borderColor(0.0f, 0.0f, 0.0f, 0.0f)
         })
         buffer("DataBuffer", dataBuffer, BufferTarget.ShaderStorage)

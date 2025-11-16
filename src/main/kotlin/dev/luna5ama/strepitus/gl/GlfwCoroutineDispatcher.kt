@@ -1,19 +1,21 @@
 package dev.luna5ama.strepitus.gl
 
 import kotlinx.coroutines.CoroutineDispatcher
-import org.lwjgl.glfw.GLFW
+import org.lwjgl.glfw.GLFW.glfwPollEvents
+import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.coroutines.CoroutineContext
 
 class GlfwCoroutineDispatcher : CoroutineDispatcher() {
-    private val tasks = mutableListOf<Runnable>()
+    private val tasks = ConcurrentLinkedQueue<Runnable>()
     private val tasksCopy = mutableListOf<Runnable>()
     private var isStopped = false
 
     fun runLoop() {
         while (!isStopped) {
-            synchronized(tasks) {
-                tasksCopy.addAll(tasks)
-                tasks.clear()
+            var runnable = tasks.poll()
+            while (runnable != null) {
+                tasksCopy.add(runnable)
+                runnable = tasks.poll()
             }
             for (runnable in tasksCopy) {
                 if (!isStopped) {
@@ -21,7 +23,7 @@ class GlfwCoroutineDispatcher : CoroutineDispatcher() {
                 }
             }
             tasksCopy.clear()
-            GLFW.glfwWaitEvents()
+            glfwPollEvents()
         }
     }
 
@@ -30,9 +32,6 @@ class GlfwCoroutineDispatcher : CoroutineDispatcher() {
     }
 
     override fun dispatch(context: CoroutineContext, block: Runnable) {
-        synchronized(tasks) {
-            tasks.add(block)
-        }
-        GLFW.glfwPostEmptyEvent()
+        tasks.add(block)
     }
 }
