@@ -18,7 +18,7 @@ inline fun <reified T : Any> ParameterEditor(
 ) {
     var expended by remember { mutableStateOf(true) }
     val clazz = T::class
-    val heading = clazz.displayName ?: camelCaseToWords(clazz.simpleName!!)
+    val heading = clazz.displayName ?: camelCaseToTitle(clazz.simpleName!!.removeSuffix("Parameters"))
     val copyFunc = clazz.memberFunctions.first { member -> member.name == "copy" }
     val copyFunParameterOrder = copyFunc.parameters.drop(1).withIndex().associate { it.value.name!! to it.index }
     val properties = clazz.memberProperties.sortedBy { copyFunParameterOrder[it.name] ?: Int.MAX_VALUE }
