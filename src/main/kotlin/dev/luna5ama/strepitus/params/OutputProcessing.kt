@@ -1,0 +1,99 @@
+package dev.luna5ama.strepitus.params
+
+import dev.luna5ama.glwrapper.base.*
+import dev.luna5ama.glwrapper.enums.ImageFormat
+import io.github.composefluent.icons.Icons
+import io.github.composefluent.icons.regular.Filter
+import java.math.BigDecimal
+
+enum class GPUFormat(val value: ImageFormat.Sized, val glslFormat: String) {
+    R8G8B8A8_UN(ImageFormat.R8G8B8A8_UN, "rgba8"),
+    R10G10B10A2_UN(ImageFormat.R10G10B10A2_UN, "rgb10_a2"),
+    R16G16B16A16_F(ImageFormat.R16G16B16A16_F, "rgba16f")
+}
+
+enum class Format(val gpuFormat: GPUFormat, val outputSpec: OutputSpec) {
+    R8_UNORM(
+        GPUFormat.R8G8B8A8_UN,
+        OutputSpec(1, GL_UNSIGNED_BYTE, 1L)
+    ),
+    R8G8_UNORM(
+        GPUFormat.R8G8B8A8_UN,
+        OutputSpec(2, GL_UNSIGNED_BYTE, 2L)
+    ),
+    R8G8B8A8_UNORM(
+        GPUFormat.R8G8B8A8_UN,
+        OutputSpec(4, GL_UNSIGNED_BYTE, 4L),
+    ),
+
+    R10G10B10A2_UNORM(
+        GPUFormat.R10G10B10A2_UN,
+        OutputSpec(4, GL_UNSIGNED_INT_2_10_10_10_REV, 4L),
+    ),
+
+    R8_SNORM(
+        GPUFormat.R8G8B8A8_UN,
+        OutputSpec(1, GL_BYTE, 1L)
+    ),
+    R8G8_SNORM(
+        GPUFormat.R8G8B8A8_UN,
+        OutputSpec(2, GL_BYTE, 2L)
+    ),
+    R8G8B8A8_SNORM(
+        GPUFormat.R8G8B8A8_UN,
+        OutputSpec(4, GL_BYTE, 4L),
+    ),
+
+    R16_UNORM(
+        GPUFormat.R16G16B16A16_F,
+        OutputSpec(1, GL_UNSIGNED_SHORT, 2L)
+    ),
+    R16G16_UNORM(
+        GPUFormat.R16G16B16A16_F,
+        OutputSpec(2, GL_UNSIGNED_SHORT, 4L)
+    ),
+    R16G16B16A16_UNORM(
+        GPUFormat.R16G16B16A16_F,
+        OutputSpec(4, GL_UNSIGNED_SHORT, 8L),
+    ),
+
+    R16_SNORM(
+        GPUFormat.R16G16B16A16_F,
+        OutputSpec(1, GL_SHORT, 2L)
+    ),
+    R16G16_SNORM(
+        GPUFormat.R16G16B16A16_F,
+        OutputSpec(2, GL_SHORT, 4L)
+    ),
+    R16G16B16A16_SNORM(
+        GPUFormat.R16G16B16A16_F,
+        OutputSpec(4, GL_SHORT, 8L),
+    ),
+
+    R16_F(
+        GPUFormat.R16G16B16A16_F,
+        OutputSpec(1, GL_HALF_FLOAT, 2L)
+    ),
+    R16G16_F(
+        GPUFormat.R16G16B16A16_F,
+        OutputSpec(2, GL_HALF_FLOAT, 4L)
+    ),
+    R16G16B16A16_F(
+        GPUFormat.R16G16B16A16_F,
+        OutputSpec(4, GL_HALF_FLOAT, 8L),
+    ),
+}
+
+
+data class OutputProcessingParameters(
+    val format: Format = Format.R8_UNORM,
+    val normalize: Boolean = true,
+    val minVal: BigDecimal = 0.0.toBigDecimal(),
+    val maxVal: BigDecimal = 1.0.toBigDecimal(),
+    val flip: Boolean = false,
+    val dither: Boolean = true,
+) {
+    companion object {
+        val icon = Icons.Default.Filter
+    }
+}

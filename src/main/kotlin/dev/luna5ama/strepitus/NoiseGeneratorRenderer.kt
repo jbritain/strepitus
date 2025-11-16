@@ -13,6 +13,11 @@ import dev.luna5ama.glwrapper.enums.WrapMode
 import dev.luna5ama.glwrapper.objects.BufferObject
 import dev.luna5ama.glwrapper.objects.TextureObject
 import dev.luna5ama.strepitus.gl.register
+import dev.luna5ama.strepitus.params.GPUFormat
+import dev.luna5ama.strepitus.params.MainParameters
+import dev.luna5ama.strepitus.params.NoiseLayerParameters
+import dev.luna5ama.strepitus.params.OutputProcessingParameters
+import dev.luna5ama.strepitus.params.ViewerParameters
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.pow
 

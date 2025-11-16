@@ -13,6 +13,16 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.vector.*
 import androidx.compose.ui.layout.*
 import androidx.compose.ui.unit.*
+import dev.luna5ama.strepitus.params.CompositeMode
+import dev.luna5ama.strepitus.params.DarkModeOption
+import dev.luna5ama.strepitus.params.MainParameters
+import dev.luna5ama.strepitus.params.NoiseLayerEditor
+import dev.luna5ama.strepitus.params.NoiseLayerParameters
+import dev.luna5ama.strepitus.params.NoiseSpecificParameters
+import dev.luna5ama.strepitus.params.OutputProcessingParameters
+import dev.luna5ama.strepitus.params.ParameterEditor
+import dev.luna5ama.strepitus.params.SystemParameters
+import dev.luna5ama.strepitus.params.ViewerParameters
 import io.github.composefluent.*
 import io.github.composefluent.component.*
 import io.github.composefluent.component.rememberScrollbarAdapter
@@ -152,7 +162,7 @@ fun App(renderer: NoiseGeneratorRenderer) {
         }
     }
 
-    renderer.mainParametersProvider = {mainParameters}
+    renderer.mainParametersProvider = { mainParameters }
     renderer.outputProcessingParametersProvider = { outputProcessingParameters }
     renderer.viewerParametersProvider = { viewerParameters }
     renderer.noiseLayersProvider = { noiseLayers.toList() }
