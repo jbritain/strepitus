@@ -3,10 +3,7 @@ package dev.luna5ama.strepitus
 import dev.luna5ama.glwrapper.ShaderBindingSpecs
 import dev.luna5ama.glwrapper.ShaderProgram
 import dev.luna5ama.glwrapper.ShaderSource
-import dev.luna5ama.glwrapper.base.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT
-import dev.luna5ama.glwrapper.base.GL_SHADER_STORAGE_BARRIER_BIT
-import dev.luna5ama.glwrapper.base.glDispatchCompute
-import dev.luna5ama.glwrapper.base.glMemoryBarrier
+import dev.luna5ama.glwrapper.base.*
 import dev.luna5ama.glwrapper.enums.BufferTarget
 import dev.luna5ama.glwrapper.enums.FilterMode
 import dev.luna5ama.glwrapper.enums.ImageFormat
@@ -14,7 +11,6 @@ import dev.luna5ama.glwrapper.enums.WrapMode
 import dev.luna5ama.glwrapper.objects.BufferObject
 import dev.luna5ama.glwrapper.objects.TextureObject
 import dev.luna5ama.strepitus.gl.register
-import java.util.concurrent.TimeUnit
 
 class NoiseGeneratorRenderer(
     private val widthProvider: () -> Int,
@@ -97,7 +93,12 @@ class NoiseGeneratorRenderer(
 
         generateNoiseShader.bind()
         generateNoiseShader.applyBinding(bindings)
-        generateNoiseShader.uniform3f("uval_noiseTexSizeF", mainParameters.width.toFloat(), mainParameters.height.toFloat(), mainParameters.slices.toFloat())
+        generateNoiseShader.uniform3f(
+            "uval_noiseTexSizeF",
+            mainParameters.width.toFloat(),
+            mainParameters.height.toFloat(),
+            mainParameters.slices.toFloat()
+        )
         glDispatchCompute(mainParameters.width / 16, mainParameters.height / 16, mainParameters.slices)
 
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT)
@@ -118,6 +119,7 @@ class NoiseGeneratorRenderer(
         glDispatchCompute(mainParameters.width / 16, mainParameters.height / 16, mainParameters.slices)
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT)
 
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
         finalBlitShader.bind()
         finalBlitShader.applyBinding(bindings)
         finalBlitShader.uniform1f("uval_slice", viewerParameters.slice.toFloat())

@@ -6,15 +6,12 @@ import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.scene.*
 import androidx.compose.ui.unit.*
-import androidx.compose.ui.util.packInts
+import androidx.compose.ui.util.*
 import org.lwjgl.glfw.GLFW.*
 import java.awt.Component
 import java.awt.Toolkit
 import java.awt.event.InputEvent
-import java.awt.event.KeyEvent.KEY_LOCATION_STANDARD
-import java.awt.event.KeyEvent.KEY_LOCATION_UNKNOWN
-import java.awt.event.KeyEvent.KEY_PRESSED
-import java.awt.event.KeyEvent.KEY_RELEASED
+import java.awt.event.KeyEvent.*
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
 import java.awt.event.KeyEvent as AwtKeyEvent
@@ -23,20 +20,77 @@ import java.awt.event.KeyEvent as AwtKeyEvent
 fun ComposeScene.subscribeToGLFWEvents(windowHandle: Long) {
     glfwSetMouseButtonCallback(windowHandle) { _, button, action, mods ->
         sendPointerEvent(
-            position = glfwGetCursorPos(windowHandle),
             eventType = when (action) {
                 GLFW_PRESS -> PointerEventType.Press
                 else -> PointerEventType.Release
             },
-            nativeEvent = MouseEvent(getAwtMods(windowHandle))
+            position = glfwGetCursorPos(windowHandle),
+            timeMillis = System.currentTimeMillis(),
+            type = PointerType.Mouse,
+            buttons = PointerButtons(
+                isPrimaryPressed = button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS
+                        || glfwGetMouseButton(windowHandle, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS,
+                isSecondaryPressed = button == GLFW_MOUSE_BUTTON_2 && action == GLFW_PRESS
+                        || glfwGetMouseButton(windowHandle, GLFW_MOUSE_BUTTON_2) == GLFW_PRESS,
+                isBackPressed = button == GLFW_MOUSE_BUTTON_4 && action == GLFW_PRESS
+                        || glfwGetMouseButton(windowHandle, GLFW_MOUSE_BUTTON_4) == GLFW_PRESS,
+                isForwardPressed = button == GLFW_MOUSE_BUTTON_5 && action == GLFW_PRESS
+                        || glfwGetMouseButton(windowHandle, GLFW_MOUSE_BUTTON_5) == GLFW_PRESS,
+            ),
+            keyboardModifiers = PointerKeyboardModifiers(
+                isCtrlPressed = mods and GLFW_MOD_CONTROL != 0,
+                isMetaPressed = mods and GLFW_MOD_SUPER != 0,
+                isAltPressed = mods and GLFW_MOD_ALT != 0,
+                isShiftPressed = mods and GLFW_MOD_SHIFT != 0,
+                isAltGraphPressed = false,
+                isSymPressed = false,
+                isFunctionPressed = false,
+                isCapsLockOn = mods and GLFW_MOD_CAPS_LOCK != 0,
+                isScrollLockOn = false,
+                isNumLockOn = mods and GLFW_MOD_NUM_LOCK != 0,
+            ),
+//            nativeEvent = MouseEvent(getAwtMods(windowHandle)),
+            button = when (button) {
+                GLFW_MOUSE_BUTTON_1 -> PointerButton.Primary
+                GLFW_MOUSE_BUTTON_2 -> PointerButton.Secondary
+                GLFW_MOUSE_BUTTON_3 -> PointerButton.Tertiary
+                GLFW_MOUSE_BUTTON_4 -> PointerButton.Back
+                GLFW_MOUSE_BUTTON_5 -> PointerButton.Forward
+                else -> null
+            }
         )
     }
 
     glfwSetCursorPosCallback(windowHandle) { _, xpos, ypos ->
         sendPointerEvent(
-            position = Offset(xpos.toFloat(), ypos.toFloat()),
             eventType = PointerEventType.Move,
-            nativeEvent = MouseEvent(getAwtMods(windowHandle))
+            position = Offset(xpos.toFloat(), ypos.toFloat()),
+            timeMillis = System.currentTimeMillis(),
+            type = PointerType.Mouse,
+            buttons = PointerButtons(
+                isPrimaryPressed = glfwGetMouseButton(windowHandle, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS,
+                isSecondaryPressed = glfwGetMouseButton(windowHandle, GLFW_MOUSE_BUTTON_2) == GLFW_PRESS,
+                isBackPressed = glfwGetMouseButton(windowHandle, GLFW_MOUSE_BUTTON_4) == GLFW_PRESS,
+                isForwardPressed = glfwGetMouseButton(windowHandle, GLFW_MOUSE_BUTTON_5) == GLFW_PRESS,
+            ),
+            keyboardModifiers = PointerKeyboardModifiers(
+                isCtrlPressed = glfwGetKey(windowHandle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS
+                        || glfwGetKey(windowHandle, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS,
+                isMetaPressed = glfwGetKey(windowHandle, GLFW_KEY_LEFT_SUPER) == GLFW_PRESS
+                        || glfwGetKey(windowHandle, GLFW_KEY_RIGHT_SUPER) == GLFW_PRESS,
+                isAltPressed = glfwGetKey(windowHandle, GLFW_KEY_LEFT_ALT) == GLFW_PRESS
+                        || glfwGetKey(windowHandle, GLFW_KEY_RIGHT_ALT) == GLFW_PRESS,
+                isShiftPressed = glfwGetKey(windowHandle, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS
+                        || glfwGetKey(windowHandle, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS,
+                isAltGraphPressed = false,
+                isSymPressed = false,
+                isFunctionPressed = false,
+                isCapsLockOn = glfwGetKey(windowHandle, GLFW_KEY_CAPS_LOCK) == GLFW_PRESS,
+                isScrollLockOn = false,
+                isNumLockOn = glfwGetKey(windowHandle, GLFW_KEY_NUM_LOCK) == GLFW_PRESS,
+            ),
+//            nativeEvent = MouseEvent(getAwtMods(windowHandle),
+                    button = null
         )
     }
 
@@ -73,9 +127,12 @@ fun ComposeScene.subscribeToGLFWEvents(windowHandle: Long) {
     glfwSetCharCallback(windowHandle) { _, codepoint ->
         for (char in Character.toChars(codepoint)) {
             val time = System.nanoTime() / 1_000_000
-            sendKeyEvent(makeKeyEvent(AwtKeyEvent.KEY_TYPED, time, getAwtMods(windowHandle), 0, char,
-                KEY_LOCATION_UNKNOWN
-            ))
+            sendKeyEvent(
+                makeKeyEvent(
+                    AwtKeyEvent.KEY_TYPED, time, getAwtMods(windowHandle), 0, char,
+                    KEY_LOCATION_UNKNOWN
+                )
+            )
         }
     }
 
@@ -111,7 +168,8 @@ private fun makeKeyEvent(awtId: Int, time: Long, awtMods: Int, key: Int, char: C
     }
 
 
-    fun AwtKeyEvent.keyLocationForCompose() = if (keyLocation == KEY_LOCATION_UNKNOWN) KEY_LOCATION_STANDARD else keyLocation
+    fun AwtKeyEvent.keyLocationForCompose() =
+        if (keyLocation == KEY_LOCATION_UNKNOWN) KEY_LOCATION_STANDARD else keyLocation
 
     fun getLockingKeyStateSafe(
         mask: Int
@@ -199,6 +257,7 @@ private fun makeKeyEvent(awtId: Int, time: Long, awtMods: Int, key: Int, char: C
         )
     )
 }
+
 private fun MouseEvent(awtMods: Int) = MouseEvent(
     awtComponent, 0, 0, awtMods, 0, 0, 1, false
 )
@@ -219,11 +278,23 @@ private fun getAwtMods(windowHandle: Long): Int {
         awtMods = awtMods or (1 shl 14)
     if (glfwGetMouseButton(windowHandle, GLFW_MOUSE_BUTTON_5) == GLFW_PRESS)
         awtMods = awtMods or (1 shl 15)
-    if (glfwGetKey(windowHandle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS || glfwGetKey(windowHandle, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS)
+    if (glfwGetKey(windowHandle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS || glfwGetKey(
+            windowHandle,
+            GLFW_KEY_RIGHT_CONTROL
+        ) == GLFW_PRESS
+    )
         awtMods = awtMods or InputEvent.CTRL_DOWN_MASK
-    if (glfwGetKey(windowHandle, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || glfwGetKey(windowHandle, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS)
+    if (glfwGetKey(windowHandle, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || glfwGetKey(
+            windowHandle,
+            GLFW_KEY_RIGHT_SHIFT
+        ) == GLFW_PRESS
+    )
         awtMods = awtMods or InputEvent.SHIFT_DOWN_MASK
-    if (glfwGetKey(windowHandle, GLFW_KEY_LEFT_ALT) == GLFW_PRESS || glfwGetKey(windowHandle, GLFW_KEY_RIGHT_ALT) == GLFW_PRESS)
+    if (glfwGetKey(windowHandle, GLFW_KEY_LEFT_ALT) == GLFW_PRESS || glfwGetKey(
+            windowHandle,
+            GLFW_KEY_RIGHT_ALT
+        ) == GLFW_PRESS
+    )
         awtMods = awtMods or InputEvent.ALT_DOWN_MASK
     return awtMods
 }

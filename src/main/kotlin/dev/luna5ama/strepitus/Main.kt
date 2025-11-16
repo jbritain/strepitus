@@ -8,7 +8,6 @@ import dev.luna5ama.strepitus.gl.GlfwCoroutineDispatcher
 import dev.luna5ama.strepitus.gl.subscribeToGLFWEvents
 import org.jetbrains.skia.*
 import org.jetbrains.skia.Color
-import org.jetbrains.skia.impl.use
 import org.jetbrains.skiko.FrameDispatcher
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
@@ -29,6 +28,8 @@ fun main() {
     val windowHandle: Long = glfwCreateWindow(width, height, "Strepitus", 0L, 0L)
     glfwMakeContextCurrent(windowHandle)
     glfwSwapInterval(1)
+
+    glfwSetInputMode(windowHandle, GLFW_LOCK_KEY_MODS, GLFW_TRUE)
 
     GL.createCapabilities()
 
@@ -53,9 +54,9 @@ fun main() {
     val renderer = NoiseGeneratorRenderer({width}, {height})
 
     fun render() {
-        surface.canvas.clear(Color.WHITE)
-        context.flush()
         renderer.draw()
+        context.resetGLAll()
+        context.flush()
         composeScene.size = IntSize(width, height)
         composeScene.render(surface.canvas.asComposeCanvas(), System.nanoTime())
 
@@ -65,10 +66,12 @@ fun main() {
 
     val frameDispatcher = FrameDispatcher(glfwDispatcher) { render() }
 
-//    glfwGetWindowContentScale(windowHandle)
-    val density = Density(1.0f)
+    val temp = floatArrayOf(0f)
+    val dummy = floatArrayOf(1.0f)
+    glfwGetWindowContentScale(windowHandle, temp, dummy)
     composeScene = CanvasLayersComposeScene(
-        density,
+        Density(temp[0]),
+        size = IntSize(width, height),
         invalidate = frameDispatcher::scheduleFrame,
         coroutineContext = glfwDispatcher
     )
