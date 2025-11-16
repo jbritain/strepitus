@@ -4,11 +4,12 @@
 #include "/util/Math.glsl"
 #include "/util/Rand.glsl"
 
+uniform vec3 uval_noiseTexSizeF;
 uniform float uval_slice;
 uniform float uval_zoom;
 uniform int uval_colorMode;
 uniform int uval_tilling;
-uniform ivec4 uval_viewport;
+uniform vec2 uval_offset;
 
 uniform sampler3D usam_outputImageTiling;
 uniform sampler3D usam_outputImage;
@@ -24,7 +25,7 @@ vec3 dither(vec3 x, float noiseV) {
 }
 
 void main() {
-    vec2 screenPos = (gl_FragCoord.xy - vec2(uval_viewport.xy)) / 1080.0;
+    vec2 screenPos = (gl_FragCoord.xy - uval_offset) / uval_noiseTexSizeF.xy;
     vec3 samplePos = vec3(screenPos, uval_slice);
     samplePos = samplePos * 2.0 - 1.0;
     samplePos.xy *= uval_zoom;

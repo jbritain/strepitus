@@ -132,11 +132,22 @@ class NoiseGeneratorRenderer(
         glViewport(windowWidth - frameWidth, 0, frameWidth, frameHeight)
         finalBlitShader.bind()
         finalBlitShader.applyBinding(bindings)
+        finalBlitShader.uniform3f(
+            "uval_noiseTexSizeF",
+            mainParameters.width.toFloat(),
+            mainParameters.height.toFloat(),
+            mainParameters.slices.toFloat()
+        )
         finalBlitShader.uniform1f("uval_slice", viewerParameters.slice.toFloat())
         finalBlitShader.uniform1f("uval_zoom", 2.0.pow(-viewerParameters.zoom.toDouble()).toFloat())
         finalBlitShader.uniform1i("uval_colorMode", viewerParameters.colorMode.ordinal)
         finalBlitShader.uniform1i("uval_tilling", if (viewerParameters.tilling) 1 else 0)
-        finalBlitShader.uniform4i("uval_viewport",windowWidth - frameWidth, 0, frameWidth, frameHeight)
+        var offsetX = frameWidth / 2.0 - mainParameters.width / 2.0
+        offsetX += windowWidth - frameWidth
+        offsetX -= viewerParameters.centerX.toDouble()
+        var offsetY = frameHeight / 2.0 - mainParameters.height / 2.0
+        offsetY += viewerParameters.centerY.toDouble()
+        finalBlitShader.uniform2f("uval_offset",offsetX.toFloat(), offsetY.toFloat())
         basic.drawQuad()
     }
 }

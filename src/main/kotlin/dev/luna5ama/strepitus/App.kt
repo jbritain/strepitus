@@ -1,7 +1,9 @@
 package dev.luna5ama.strepitus
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.onDrag
 import androidx.compose.foundation.gestures.rememberScrollableState
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -23,6 +25,7 @@ import io.github.composefluent.icons.*
 import io.github.composefluent.icons.regular.*
 import java.math.MathContext
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun App(renderer: NoiseGeneratorRenderer) {
     var mainParameters by remember { mutableStateOf(MainParameters()) }
@@ -125,7 +128,6 @@ fun App(renderer: NoiseGeneratorRenderer) {
                     }
                 }
             }
-            val scrollState = rememberScrollState()
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -137,19 +139,18 @@ fun App(renderer: NoiseGeneratorRenderer) {
                         orientation = Orientation.Vertical,
                         state = rememberScrollableState { delta ->
                             viewerParameters = viewerParameters.copy(
-                                zoom = (viewerParameters.zoom + (delta / 1000.0).toBigDecimal(MathContext(2)))
+                                zoom = (viewerParameters.zoom + (delta / 1000.0).toBigDecimal())
                             )
                             delta
                         }
                     )
-            ) {}
-            if (scrollState.isScrollInProgress) {
-                DisposableEffect(Unit) {
-                    onDispose {
-                        println("scroll completed")
+                    .onDrag {
+                        viewerParameters = viewerParameters.copy(
+                            centerX = (viewerParameters.centerX - it.x.toBigDecimal()),
+                            centerY = (viewerParameters.centerY - it.y.toBigDecimal())
+                        )
                     }
-                }
-            }
+            ) {}
         }
     }
 

@@ -34,7 +34,7 @@ void main() {
         if (uval_flip == 1) {
             value = vec4(1.0) - value;
         }
-        value = mix(vec4(0.0), vec4(uval_maxVal), value);
+        value = mix(vec4(uval_minVal), vec4(uval_maxVal), value);
     }
     if (uval_dither == 1) {
         // TODO: dithering
