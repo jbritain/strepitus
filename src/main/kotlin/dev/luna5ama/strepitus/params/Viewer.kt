@@ -20,8 +20,4 @@ data class ViewerParameters(
     val centerY: BigDecimal = 0.0.toBigDecimal(),
     val slice: BigDecimal = 0.0.toBigDecimal(),
     val zoom: BigDecimal = 0.0.toBigDecimal(),
-) {
-    companion object {
-        val icon = Icons.Default.Eye
-    }
-}
+)

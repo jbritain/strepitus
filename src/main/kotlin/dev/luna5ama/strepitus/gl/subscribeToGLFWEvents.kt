@@ -137,7 +137,7 @@ fun ComposeScene.subscribeToGLFWEvents(windowHandle: Long) {
     }
 
     glfwSetWindowContentScaleCallback(windowHandle) { _, xscale, _ ->
-        density = Density(xscale)
+//        density = Density(xscale)
     }
 }
 

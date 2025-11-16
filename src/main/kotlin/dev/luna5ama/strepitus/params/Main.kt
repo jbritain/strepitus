@@ -8,11 +8,7 @@ data class MainParameters(
     val width: Int = 512,
     val height: Int = 512,
     val slices: Int = 1
-) {
-    companion object {
-        val icon = Icons.Default.Image
-    }
-}
+)
 
 data class OutputSpec(
     val channels: Int,

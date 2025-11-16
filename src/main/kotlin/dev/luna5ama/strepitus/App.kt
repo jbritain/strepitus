@@ -19,7 +19,7 @@ import dev.luna5ama.strepitus.params.MainParameters
 import dev.luna5ama.strepitus.params.NoiseLayerEditor
 import dev.luna5ama.strepitus.params.NoiseLayerParameters
 import dev.luna5ama.strepitus.params.NoiseSpecificParameters
-import dev.luna5ama.strepitus.params.OutputProcessingParameters
+import dev.luna5ama.strepitus.params.OutputParameters
 import dev.luna5ama.strepitus.params.ParameterEditor
 import dev.luna5ama.strepitus.params.SystemParameters
 import dev.luna5ama.strepitus.params.ViewerParameters
@@ -37,7 +37,7 @@ val roundingMode = MathContext(4, RoundingMode.FLOOR)
 @Composable
 fun App(renderer: NoiseGeneratorRenderer) {
     var mainParameters by remember { mutableStateOf(MainParameters()) }
-    var outputProcessingParameters by remember { mutableStateOf(OutputProcessingParameters()) }
+    var outputParameters by remember { mutableStateOf(OutputParameters()) }
     var viewerParameters by remember { mutableStateOf(ViewerParameters()) }
     var systemParameters by remember { mutableStateOf(SystemParameters()) }
 
@@ -68,7 +68,7 @@ fun App(renderer: NoiseGeneratorRenderer) {
                 modifier = Modifier
                     .background(color = FluentTheme.colors.background.mica.base)
             ) {
-                var sideNavItem by remember { mutableStateOf(SideNavItem.General) }
+                var sideNavItem by remember { mutableStateOf(SideNavItem.Main) }
                 var sideNavExpanded by remember { mutableStateOf(false) }
                 SideNav(
                     expanded = sideNavExpanded,
@@ -104,24 +104,27 @@ fun App(renderer: NoiseGeneratorRenderer) {
                         Text(
                             sideNavItem.name,
                             style = FluentTheme.typography.title.copy(color = FluentTheme.colors.text.text.primary),
-                            modifier = Modifier.padding(8.dp, bottom = 16.dp)
+                            modifier = Modifier.padding(8.dp, vertical = 12.dp)
                         )
                         when (sideNavItem) {
-                            SideNavItem.General -> {
+                            SideNavItem.Main -> {
                                 ParameterEditor(
                                     mainParameters,
                                     { mainParameters = it }
                                 )
+                            }
+                            SideNavItem.Output -> {
                                 ParameterEditor(
-                                    outputProcessingParameters,
-                                    { outputProcessingParameters = it }
+                                    outputParameters,
+                                    { outputParameters = it }
                                 )
+                            }
+                            SideNavItem.Viewer -> {
                                 ParameterEditor(
                                     viewerParameters,
                                     { viewerParameters = it }
                                 )
                             }
-
                             SideNavItem.Noise -> {
                                 NoiseLayerEditor(noiseLayers)
                             }
@@ -163,13 +166,15 @@ fun App(renderer: NoiseGeneratorRenderer) {
     }
 
     renderer.mainParametersProvider = { mainParameters }
-    renderer.outputProcessingParametersProvider = { outputProcessingParameters }
+    renderer.outputParametersProvider = { outputParameters }
     renderer.viewerParametersProvider = { viewerParameters }
     renderer.noiseLayersProvider = { noiseLayers.toList() }
 }
 
 enum class SideNavItem(val icon: ImageVector) {
-    General(Icons.Default.Home),
+    Main(Icons.Default.Image),
     Noise(Icons.Default.GridDots),
+    Output(Icons.Default.Filter),
+    Viewer(Icons.Default.Eye),
     Setting(Icons.Default.Settings),
 }

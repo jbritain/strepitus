@@ -16,7 +16,7 @@ import dev.luna5ama.strepitus.gl.register
 import dev.luna5ama.strepitus.params.GPUFormat
 import dev.luna5ama.strepitus.params.MainParameters
 import dev.luna5ama.strepitus.params.NoiseLayerParameters
-import dev.luna5ama.strepitus.params.OutputProcessingParameters
+import dev.luna5ama.strepitus.params.OutputParameters
 import dev.luna5ama.strepitus.params.ViewerParameters
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.pow
@@ -26,14 +26,14 @@ class NoiseGeneratorRenderer(
     private val heightProvider: () -> Int,
 ) : AbstractRenderer() {
     lateinit var mainParametersProvider: () -> MainParameters
-    lateinit var outputProcessingParametersProvider: () -> OutputProcessingParameters
+    lateinit var outputParametersProvider: () -> OutputParameters
     lateinit var viewerParametersProvider: () -> ViewerParameters
     lateinit var noiseLayersProvider: () -> List<NoiseLayerParameters<*>>
 
     private val mainParameters: MainParameters
         get() = mainParametersProvider()
-    private val outputProcessingParameters: OutputProcessingParameters
-        get() = outputProcessingParametersProvider()
+    private val outputParameters: OutputParameters
+        get() = outputParametersProvider()
     private val viewerParameters: ViewerParameters
         get() = viewerParametersProvider()
     private val noiseLayers: List<NoiseLayerParameters<*>>
@@ -124,7 +124,7 @@ class NoiseGeneratorRenderer(
         )
         outputImage.allocate(
             1,
-            outputProcessingParameters.format.gpuFormat.value,
+            outputParameters.format.gpuFormat.value,
             mainParameters.width,
             mainParameters.height,
             mainParameters.slices
@@ -153,14 +153,14 @@ class NoiseGeneratorRenderer(
         glDispatchCompute(mainParameters.width / 32, mainParameters.height / 32, mainParameters.slices)
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT)
 
-        val normalizeShader = normalizeShaders[outputProcessingParameters.format.gpuFormat]
+        val normalizeShader = normalizeShaders[outputParameters.format.gpuFormat]
         normalizeShader.bind()
         normalizeShader.applyBinding(bindings)
-        normalizeShader.uniform1i("uval_normalize", if (outputProcessingParameters.normalize) 1 else 0)
-        normalizeShader.uniform1f("uval_minVal", outputProcessingParameters.minVal.toFloat())
-        normalizeShader.uniform1f("uval_maxVal", outputProcessingParameters.maxVal.toFloat())
-        normalizeShader.uniform1i("uval_flip", if (outputProcessingParameters.flip) 1 else 0)
-        normalizeShader.uniform1i("uval_dither", if (outputProcessingParameters.dither) 1 else 0)
+        normalizeShader.uniform1i("uval_normalize", if (outputParameters.normalize) 1 else 0)
+        normalizeShader.uniform1f("uval_minVal", outputParameters.minVal.toFloat())
+        normalizeShader.uniform1f("uval_maxVal", outputParameters.maxVal.toFloat())
+        normalizeShader.uniform1i("uval_flip", if (outputParameters.flip) 1 else 0)
+        normalizeShader.uniform1i("uval_dither", if (outputParameters.dither) 1 else 0)
         glDispatchCompute(mainParameters.width / 16, mainParameters.height / 16, mainParameters.slices)
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT)
     }

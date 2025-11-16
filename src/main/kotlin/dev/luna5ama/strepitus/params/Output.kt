@@ -2,8 +2,6 @@ package dev.luna5ama.strepitus.params
 
 import dev.luna5ama.glwrapper.base.*
 import dev.luna5ama.glwrapper.enums.ImageFormat
-import io.github.composefluent.icons.Icons
-import io.github.composefluent.icons.regular.Filter
 import java.math.BigDecimal
 
 enum class GPUFormat(val value: ImageFormat.Sized, val glslFormat: String) {
@@ -85,15 +83,11 @@ enum class Format(val gpuFormat: GPUFormat, val outputSpec: OutputSpec) {
 }
 
 
-data class OutputProcessingParameters(
+data class OutputParameters(
     val format: Format = Format.R8_UNORM,
     val normalize: Boolean = true,
     val minVal: BigDecimal = 0.0.toBigDecimal(),
     val maxVal: BigDecimal = 1.0.toBigDecimal(),
     val flip: Boolean = false,
     val dither: Boolean = true,
-) {
-    companion object {
-        val icon = Icons.Default.Filter
-    }
-}
+)
