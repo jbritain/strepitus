@@ -2,6 +2,7 @@ package dev.luna5ama.strepitus
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.vector.*
 import androidx.compose.ui.unit.*
@@ -10,6 +11,8 @@ import io.github.composefluent.*
 import io.github.composefluent.component.*
 import io.github.composefluent.icons.*
 import io.github.composefluent.icons.regular.*
+import kotlinx.serialization.Transient
+import java.awt.Dialog
 import java.math.BigDecimal
 import kotlin.reflect.KAnnotatedElement
 import kotlin.reflect.KClass
@@ -17,6 +20,81 @@ import kotlin.reflect.full.companionObject
 import kotlin.reflect.full.isSuperclassOf
 import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.memberProperties
+
+@Composable
+fun NoiseLayerEditor(
+    layers: SnapshotStateList<NoiseLayerParameters<*>>,
+) {
+    var deletingIndex by remember { mutableIntStateOf(-1) }
+    ContentDialog(
+        title = "Delete Layer",
+        visible = deletingIndex in layers.indices,
+        size = DialogSize.Standard,
+        primaryButtonText = "Delete",
+        onButtonClick = {
+            if (it == ContentDialogButton.Primary) {
+                if (deletingIndex in layers.indices) {
+                    layers.removeAt(deletingIndex)
+                }
+            } else {
+                deletingIndex = -1
+            }
+        },
+        secondaryButtonText = "Cancel",
+        content = {
+            Text("Are you sure you want to delete this layer?")
+        }
+    )
+//        Button(
+//            onClick = {
+//                if (deletingIndex in layers.indices) {
+//                    layers.removeAt(deletingIndex)
+//                }
+//                deletingIndex = -1
+//            }
+//        ) {
+//            Text("Delete")
+//        }
+//        Button(
+//            onClick = {
+//                deletingIndex = -1
+//            }
+//        ) {
+//            Text("Cancel")
+//        }
+    layers.forEachIndexed { i, layer ->
+        Expander(
+            layer.expanded,
+            onExpandedChanged = { layers[i] = layer.copy(expanded = it) },
+            icon = {
+                Spacer(modifier = Modifier.width(FluentTheme.typography.subtitle.fontSize.value.dp * 3.0f))
+                Icon(
+                    imageVector = Icons.Default.ReOrderDotsVertical,
+                    contentDescription = "",
+                    modifier = Modifier.size(FluentTheme.typography.subtitle.fontSize.value.dp)
+                )
+            },
+            heading = {
+                Text(layer.specificParameters::class.simpleName!!, style = FluentTheme.typography.subtitle)
+            },
+            trailing = {
+                Button(
+                    onClick = {
+                        deletingIndex = i
+                    },
+                    iconOnly = true
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete Layer"
+                    )
+                }
+            }
+        ) {
+
+        }
+    }
+}
 
 @Composable
 inline fun <reified T : Any> ParameterEditor(
@@ -27,7 +105,6 @@ inline fun <reified T : Any> ParameterEditor(
     parameters = parameters,
     onChange = onChange
 )
-
 
 @Suppress("UNCHECKED_CAST")
 @Composable
@@ -40,7 +117,9 @@ fun <T : Any> ParameterEditor(
     val heading = clazz.displayName ?: camelCaseToTitle(clazz.simpleName!!.removeSuffix("Parameters"))
     val copyFunc = clazz.memberFunctions.first { member -> member.name == "copy" }
     val copyFunParameterOrder = copyFunc.parameters.drop(1).withIndex().associate { it.value.name!! to it.index }
-    val properties = clazz.memberProperties.sortedBy { copyFunParameterOrder[it.name] ?: Int.MAX_VALUE }
+    val properties = clazz.memberProperties
+        .filter { it.annotations.none { ann -> ann is Transient } }
+        .sortedBy { copyFunParameterOrder[it.name] ?: Int.MAX_VALUE }
     val icon = clazz.companionObject?.let { companion ->
         companion.memberProperties.firstOrNull { it.name == "icon" }?.getter?.call(companion.objectInstance) as? ImageVector
     }
@@ -212,6 +291,8 @@ data class NoiseLayerParameters<T : NoiseSpecificParameters>(
     val enabled: Boolean,
     val compositeMode: CompositeMode,
     val specificParameters: T,
+    @Transient
+    val expanded: Boolean = true,
 )
 
 enum class DistanceFunction {
@@ -222,6 +303,10 @@ enum class DistanceFunction {
 
 @Immutable
 sealed interface NoiseSpecificParameters {
+    data class Value(
+        val value: BigDecimal = 0.0.toBigDecimal(),
+    ) : NoiseSpecificParameters
+
     data class Perlin(
         val rotated: Boolean = false,
     ) : NoiseSpecificParameters

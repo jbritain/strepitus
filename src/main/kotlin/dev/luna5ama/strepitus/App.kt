@@ -25,7 +25,15 @@ fun App() {
     var viewerParameters by remember { mutableStateOf(ViewerParameters()) }
     var systemParameters by remember { mutableStateOf(SystemParameters()) }
 
-    val noiseLayers = remember { mutableStateListOf<Int>() }
+    val noiseLayers = remember {
+        mutableStateListOf<NoiseLayerParameters<*>>(
+            NoiseLayerParameters(
+                true,
+                CompositeMode.Add,
+                NoiseSpecificParameters.Perlin(false)
+            )
+        )
+    }
 
     val darkMode = when (systemParameters.darkMode) {
         DarkModeOption.Auto -> isSystemInDarkTheme()
@@ -93,9 +101,11 @@ fun App() {
                                 { viewerParameters = it }
                             )
                         }
-                        SideNavItem.Noise -> {
 
+                        SideNavItem.Noise -> {
+                            NoiseLayerEditor(noiseLayers)
                         }
+
                         SideNavItem.Setting -> {
                             ParameterEditor(
                                 systemParameters,
@@ -105,15 +115,15 @@ fun App() {
                     }
                 }
             }
-            NoiseGeneratorPanel(
-                mainParameters,
-                outputProcessingParameters,
-                viewerParameters,
-                onScroll = {
-                    viewerParameters =
-                        viewerParameters.copy(zoom = viewerParameters.zoom - it.toBigDecimal() * 0.1.toBigDecimal())
-                },
-            )
+//            NoiseGeneratorPanel(
+//                mainParameters,
+//                outputProcessingParameters,
+//                viewerParameters,
+//                onScroll = {
+//                    viewerParameters =
+//                        viewerParameters.copy(zoom = viewerParameters.zoom - it.toBigDecimal() * 0.1.toBigDecimal())
+//                },
+//            )
         }
     }
 }
@@ -124,54 +134,54 @@ enum class SideNavItem(val icon: ImageVector) {
     Setting(Icons.Default.Settings),
 }
 
-@Composable
-fun NoiseGeneratorPanel(
-    mainParameters: MainParameters,
-    outputProcessingParameters: OutputProcessingParameters,
-    viewerParameters: ViewerParameters,
-    onScroll: (wheelRotation: Int) -> Unit,
-) {
-    val noiseGenerator by remember {
-        mutableStateOf(
-            LWJGLCanvas {
-                NoiseGeneratorRenderer(
-                    mainParameters,
-                    outputProcessingParameters,
-                    viewerParameters,
-                )
-            }
-        )
-    }
-    if (noiseGenerator.mouseWheelListeners.isEmpty()) {
-        noiseGenerator.addMouseWheelListener { onScroll(it.wheelRotation) }
-    } else {
-        noiseGenerator.mouseWheelListeners[0] = { onScroll(it.wheelRotation) }
-    }
-    SwingPanel(
-        modifier = Modifier.fillMaxSize(),
-        factory = {
-            JPanel().apply {
-                layout = BoxLayout(this, BoxLayout.Y_AXIS)
-                add(noiseGenerator)
-            }
-        }
-    )
-
-    LaunchedEffect(Unit) {
-        noiseGenerator.redraw()
-    }
-
-    noiseGenerator.update {
-        it.mainParameters = mainParameters
-        it.outputProcessingParameters = outputProcessingParameters
-        it.viewerParameters = viewerParameters
-    }
-
-    DisposableEffect(Unit) {
-        object : DisposableEffectResult {
-            override fun dispose() {
-                noiseGenerator.destroy()
-            }
-        }
-    }
-}
+//@Composable
+//fun NoiseGeneratorPanel(
+//    mainParameters: MainParameters,
+//    outputProcessingParameters: OutputProcessingParameters,
+//    viewerParameters: ViewerParameters,
+//    onScroll: (wheelRotation: Int) -> Unit,
+//) {
+//    val noiseGenerator by remember {
+//        mutableStateOf(
+//            LWJGLCanvas {
+//                NoiseGeneratorRenderer(
+//                    mainParameters,
+//                    outputProcessingParameters,
+//                    viewerParameters,
+//                )
+//            }
+//        )
+//    }
+//    if (noiseGenerator.mouseWheelListeners.isEmpty()) {
+//        noiseGenerator.addMouseWheelListener { onScroll(it.wheelRotation) }
+//    } else {
+//        noiseGenerator.mouseWheelListeners[0] = { onScroll(it.wheelRotation) }
+//    }
+//    SwingPanel(
+//        modifier = Modifier.fillMaxSize(),
+//        factory = {
+//            JPanel().apply {
+//                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+//                add(noiseGenerator)
+//            }
+//        }
+//    )
+//
+//    LaunchedEffect(Unit) {
+//        noiseGenerator.redraw()
+//    }
+//
+//    noiseGenerator.update {
+//        it.mainParameters = mainParameters
+//        it.outputProcessingParameters = outputProcessingParameters
+//        it.viewerParameters = viewerParameters
+//    }
+//
+//    DisposableEffect(Unit) {
+//        object : DisposableEffectResult {
+//            override fun dispose() {
+//                noiseGenerator.destroy()
+//            }
+//        }
+//    }
+//}

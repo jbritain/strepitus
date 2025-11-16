@@ -47,10 +47,6 @@ dependencies {
     runtimeOnly("org.lwjgl", "lwjgl-opengl", classifier = "natives-windows")
     runtimeOnly("org.lwjgl", "lwjgl-stb", classifier = "natives-windows")
 
-    implementation(libs.lwjgl3.awt) {
-        exclude(group = "org.lwjgl")
-    }
-
     implementation(libs.fastutil)
     implementation(libs.joml)
     implementation(libs.compose.fluent)
