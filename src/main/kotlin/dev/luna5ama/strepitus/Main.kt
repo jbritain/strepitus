@@ -39,15 +39,19 @@ fun main() {
                                 .padding(8.dp)
                                 .verticalScroll(scrollState)
                         ) {
-                            MainEditor(
+//                            MainEditor(
+//                                mainParameters,
+//                                { mainParameters = it }
+//                            )
+                            ParameterEditor(
                                 mainParameters,
                                 { mainParameters = it }
                             )
-                            OutputProcessingEditor(
+                            ParameterEditor(
                                 outputProcessingParameters,
                                 { outputProcessingParameters = it }
                             )
-                            ViewerEditor(
+                            ParameterEditor(
                                 viewerParameters,
                                 { viewerParameters = it }
                             )

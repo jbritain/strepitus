@@ -44,6 +44,9 @@ class NoiseGeneratorRenderer(
     private val countRangeShader = register(ShaderProgram(ShaderSource.Comp("CountRange.comp.glsl")))
 
     override fun draw() {
+        noiseImage.destroy()
+        outputImage.destroy()
+
         noiseImage.allocate(
             1,
             ImageFormat.R32G32B32A32_F,
