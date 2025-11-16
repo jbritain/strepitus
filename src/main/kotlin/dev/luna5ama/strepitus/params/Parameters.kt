@@ -1,14 +1,15 @@
 package dev.luna5ama.strepitus.params
 
 import androidx.compose.runtime.*
-import androidx.compose.ui.graphics.vector.*
-import dev.luna5ama.strepitus.*
+import dev.luna5ama.strepitus.DecimalInput
+import dev.luna5ama.strepitus.IntegerInput
+import dev.luna5ama.strepitus.ToggleSwitch
+import dev.luna5ama.strepitus.camelCaseToWords
 import io.github.composefluent.component.*
 import kotlinx.serialization.Transient
 import java.math.BigDecimal
 import kotlin.reflect.KAnnotatedElement
 import kotlin.reflect.KClass
-import kotlin.reflect.full.companionObject
 import kotlin.reflect.full.isSuperclassOf
 import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.memberProperties

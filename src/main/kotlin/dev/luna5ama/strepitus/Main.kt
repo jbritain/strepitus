@@ -1,5 +1,7 @@
 package dev.luna5ama.strepitus
 
+import androidx.collection.mutableScatterSetOf
+import androidx.compose.runtime.snapshots.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.scene.*
@@ -7,12 +9,7 @@ import androidx.compose.ui.unit.*
 import dev.luna5ama.strepitus.gl.GlfwCoroutineDispatcher
 import dev.luna5ama.strepitus.gl.subscribeToGLFWEvents
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import org.jetbrains.skia.*
-import org.jetbrains.skia.Color
 import org.jetbrains.skiko.FrameDispatcher
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
@@ -56,10 +53,12 @@ fun main() {
 
     lateinit var composeScene: ComposeScene
 
-    val renderer = NoiseGeneratorRenderer({width}, {height})
-
+    val renderer = NoiseGeneratorRenderer({ width }, { height })
+    val readingStatesOnRender = mutableScatterSetOf<Any>()
     fun render() {
-        renderer.draw()
+        Snapshot.observe(readObserver = readingStatesOnRender::add) {
+            renderer.draw()
+        }
         context.resetGLAll()
         context.flush()
         composeScene.size = IntSize(width, height)
@@ -70,6 +69,14 @@ fun main() {
     }
 
     val frameDispatcher = FrameDispatcher(glfwDispatcher) { render() }
+    val applyObserverHandle: ObserverHandle = Snapshot.registerApplyObserver { changedStates, _ ->
+        for (state in changedStates) {
+            if (state in readingStatesOnRender) {
+                frameDispatcher.scheduleFrame()
+                break
+            }
+        }
+    }
 
     val temp = floatArrayOf(0f)
     val dummy = floatArrayOf(1.0f)
@@ -113,6 +120,7 @@ fun main() {
     glfwDispatcher.runLoop()
 //    l.cancel()
 
+    applyObserverHandle.dispose()
     composeScene.close()
     renderer.dispose()
     glfwDestroyWindow(windowHandle)
