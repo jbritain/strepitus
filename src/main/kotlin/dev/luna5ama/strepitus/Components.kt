@@ -49,7 +49,7 @@ fun DecimalInput(
     onValueChange: (BigDecimal) -> Unit,
     enabled: Boolean = true,
 ) {
-    var typedValue by remember { mutableStateOf(value.toString()) }
+    var typedValue by remember(value) { mutableStateOf(value.toString()) }
     TextField(
         value = typedValue,
         onValueChange = { str ->

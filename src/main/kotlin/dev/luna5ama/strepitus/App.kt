@@ -1,22 +1,27 @@
 package dev.luna5ama.strepitus
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
-import androidx.compose.ui.awt.*
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.vector.*
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.rotary.onRotaryScrollEvent
+import androidx.compose.ui.layout.*
 import androidx.compose.ui.unit.*
 import io.github.composefluent.*
 import io.github.composefluent.component.*
 import io.github.composefluent.component.rememberScrollbarAdapter
 import io.github.composefluent.icons.*
 import io.github.composefluent.icons.regular.*
-import javax.swing.BoxLayout
-import javax.swing.JPanel
+import java.math.MathContext
 
 @Composable
 fun App(renderer: NoiseGeneratorRenderer) {
@@ -46,72 +51,102 @@ fun App(renderer: NoiseGeneratorRenderer) {
     ) {
         Row(
             modifier = Modifier
-                .background(color = FluentTheme.colors.background.mica.base)
+                .background(color = Color.Transparent)
         ) {
-            var sideNavItem by remember { mutableStateOf(SideNavItem.General) }
-            var sideNavExpanded by remember { mutableStateOf(false) }
-            SideNav(
-                expanded = sideNavExpanded,
-                onExpandStateChange = { sideNavExpanded = it },
+            Row(
+                modifier = Modifier
+                    .background(color = FluentTheme.colors.background.mica.base)
             ) {
-                SideNavItem.entries.forEach { item ->
-                    if (item == SideNavItem.Setting) {
-                        Spacer(modifier = Modifier.weight(1f))
+                var sideNavItem by remember { mutableStateOf(SideNavItem.General) }
+                var sideNavExpanded by remember { mutableStateOf(false) }
+                SideNav(
+                    expanded = sideNavExpanded,
+                    onExpandStateChange = { sideNavExpanded = it },
+                ) {
+                    SideNavItem.entries.forEach { item ->
+                        if (item == SideNavItem.Setting) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                        SideNavItem(
+                            selected = sideNavItem == item,
+                            onClick = { if (it) sideNavItem = item },
+                            icon = {
+                                Icon(imageVector = item.icon, contentDescription = "")
+                            },
+                        ) {
+                            Text(item.name)
+                        }
                     }
-                    SideNavItem(
-                        selected = sideNavItem == item,
-                        onClick = { if (it) sideNavItem = item },
-                        icon = {
-                            Icon(imageVector = item.icon, contentDescription = "")
-                        },
+                }
+
+                val scrollState = rememberScrollState()
+                ScrollbarContainer(
+                    adapter = rememberScrollbarAdapter(scrollState)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .width(480.dp)
+                            .fillMaxHeight()
+                            .padding(8.dp)
+                            .verticalScroll(scrollState)
                     ) {
-                        Text(item.name)
+                        Text(
+                            sideNavItem.name,
+                            style = FluentTheme.typography.title.copy(color = FluentTheme.colors.text.text.primary),
+                            modifier = Modifier.padding(8.dp, bottom = 16.dp)
+                        )
+                        when (sideNavItem) {
+                            SideNavItem.General -> {
+                                ParameterEditor(
+                                    mainParameters,
+                                    { mainParameters = it }
+                                )
+                                ParameterEditor(
+                                    outputProcessingParameters,
+                                    { outputProcessingParameters = it }
+                                )
+                                ParameterEditor(
+                                    viewerParameters,
+                                    { viewerParameters = it }
+                                )
+                            }
+
+                            SideNavItem.Noise -> {
+                                NoiseLayerEditor(noiseLayers)
+                            }
+
+                            SideNavItem.Setting -> {
+                                ParameterEditor(
+                                    systemParameters,
+                                    { systemParameters = it }
+                                )
+                            }
+                        }
                     }
                 }
             }
-
             val scrollState = rememberScrollState()
-            ScrollbarContainer(
-                adapter = rememberScrollbarAdapter(scrollState)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .width(480.dp)
-                        .fillMaxHeight()
-                        .padding(8.dp)
-                        .verticalScroll(scrollState)
-                ) {
-                    Text(
-                        sideNavItem.name,
-                        style = FluentTheme.typography.title.copy(color = FluentTheme.colors.text.text.primary),
-                        modifier = Modifier.padding(8.dp, bottom = 16.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onSizeChanged {
+                        renderer.frameWidth = it.width
+                        renderer.frameHeight = it.height
+                    }
+                    .scrollable(
+                        orientation = Orientation.Vertical,
+                        state = rememberScrollableState { delta ->
+                            viewerParameters = viewerParameters.copy(
+                                zoom = (viewerParameters.zoom + (delta / 1000.0).toBigDecimal(MathContext(2)))
+                            )
+                            delta
+                        }
                     )
-                    when (sideNavItem) {
-                        SideNavItem.General -> {
-                            ParameterEditor(
-                                mainParameters,
-                                { mainParameters = it }
-                            )
-                            ParameterEditor(
-                                outputProcessingParameters,
-                                { outputProcessingParameters = it }
-                            )
-                            ParameterEditor(
-                                viewerParameters,
-                                { viewerParameters = it }
-                            )
-                        }
-
-                        SideNavItem.Noise -> {
-                            NoiseLayerEditor(noiseLayers)
-                        }
-
-                        SideNavItem.Setting -> {
-                            ParameterEditor(
-                                systemParameters,
-                                { systemParameters = it }
-                            )
-                        }
+            ) {}
+            if (scrollState.isScrollInProgress) {
+                DisposableEffect(Unit) {
+                    onDispose {
+                        println("scroll completed")
                     }
                 }
             }

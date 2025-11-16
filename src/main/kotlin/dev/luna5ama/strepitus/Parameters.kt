@@ -5,6 +5,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.vector.*
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.*
 import dev.luna5ama.glwrapper.base.*
 import dev.luna5ama.glwrapper.enums.ImageFormat
@@ -343,13 +344,14 @@ enum class DisplayColorMode {
 }
 
 data class ViewerParameters(
+    val colorMode: DisplayColorMode = DisplayColorMode.Grayscale,
+    val tilling: Boolean = false,
     @DisplayName("Center X")
     val centerX: BigDecimal = 0.0.toBigDecimal(),
     @DisplayName("Center Y")
     val centerY: BigDecimal = 0.0.toBigDecimal(),
-    val slice: BigDecimal = 0.0.toBigDecimal(),
+    val slice: BigDecimal = 0.5.toBigDecimal(),
     val zoom: BigDecimal = 0.0.toBigDecimal(),
-    val colorMode: DisplayColorMode = DisplayColorMode.Grayscale,
 ) {
     companion object {
         val icon = Icons.Default.Eye

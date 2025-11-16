@@ -11,6 +11,7 @@ import dev.luna5ama.glwrapper.enums.WrapMode
 import dev.luna5ama.glwrapper.objects.BufferObject
 import dev.luna5ama.glwrapper.objects.TextureObject
 import dev.luna5ama.strepitus.gl.register
+import kotlin.math.pow
 
 class NoiseGeneratorRenderer(
     private val widthProvider: () -> Int,
@@ -21,10 +22,13 @@ class NoiseGeneratorRenderer(
     var viewerParameters = ViewerParameters()
     var noiseLayers = emptyList<NoiseLayerParameters<*>>()
 
-    val width: Int
+    var frameWidth = 0
+    var frameHeight = 0
+
+    val windowWidth: Int
         get() = widthProvider()
 
-    val height: Int
+    val windowHeight: Int
         get() = heightProvider()
 
     private val noiseImage = register(TextureObject.Texture3D()).apply {
@@ -43,9 +47,14 @@ class NoiseGeneratorRenderer(
     private val bindings = ShaderBindingSpecs.of {
         image("uimg_noiseImage", noiseImage)
         image("uimg_outputImage", outputImage)
+        sampler("usam_outputImageTiling", outputImage, samplerManager.get {
+            filter(FilterMode.Linear, FilterMode.Linear)
+            wrap(WrapMode.Repeat, WrapMode.Repeat, WrapMode.Repeat)
+        })
         sampler("usam_outputImage", outputImage, samplerManager.get {
             filter(FilterMode.Linear, FilterMode.Linear)
-            wrap(WrapMode.Repeat, WrapMode.Repeat)
+            wrap(WrapMode.ClampToBorder, WrapMode.ClampToBorder, WrapMode.ClampToBorder)
+            borderColor(0.0f, 0.0f, 0.0f, 0.0f)
         })
         buffer("DataBuffer", dataBuffer, BufferTarget.ShaderStorage)
     }
@@ -75,15 +84,15 @@ class NoiseGeneratorRenderer(
         noiseImage.allocate(
             1,
             ImageFormat.R32G32B32A32_F,
-            mainParameters.height,
             mainParameters.width,
+            mainParameters.height,
             mainParameters.slices
         )
         outputImage.allocate(
             1,
             outputProcessingParameters.format.gpuFormat.value,
-            mainParameters.height,
             mainParameters.width,
+            mainParameters.height,
             mainParameters.slices
         )
 
@@ -120,10 +129,14 @@ class NoiseGeneratorRenderer(
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT)
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
+        glViewport(windowWidth - frameWidth, 0, frameWidth, frameHeight)
         finalBlitShader.bind()
         finalBlitShader.applyBinding(bindings)
         finalBlitShader.uniform1f("uval_slice", viewerParameters.slice.toFloat())
+        finalBlitShader.uniform1f("uval_zoom", 2.0.pow(-viewerParameters.zoom.toDouble()).toFloat())
         finalBlitShader.uniform1i("uval_colorMode", viewerParameters.colorMode.ordinal)
+        finalBlitShader.uniform1i("uval_tilling", if (viewerParameters.tilling) 1 else 0)
+        finalBlitShader.uniform4i("uval_viewport",windowWidth - frameWidth, 0, frameWidth, frameHeight)
         basic.drawQuad()
     }
 }
