@@ -1,71 +1,67 @@
 package dev.luna5ama.strepitus
 
-import org.joml.Matrix4f
+import dev.luna5ama.strepitus.gl.IGLObjContainer
+import dev.luna5ama.strepitus.gl.register
 import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.awt.AWTGLCanvas
 import org.lwjgl.opengl.awt.GLData
+import java.util.concurrent.atomic.AtomicLong
 import javax.swing.SwingUtilities
-import kotlin.properties.Delegates
 
-class LWJGLCanvas(
-    val renderer: Renderer,
-    var rotationSpeed: Float,
+class LWJGLCanvas<T: AbstractRenderer>(
+    private val rendererProvider: () -> T
 ) : AWTGLCanvas(GLData().apply {
     swapInterval = 1
     sRGB = true
-}) {
-    init {
-        println("Recomposição")
-    }
+}), IGLObjContainer by IGLObjContainer.Impl() {
+    private val dirtyCounter = AtomicLong(0)
+    private val drawCounter = AtomicLong(0)
+
+    private lateinit var renderer: T
 
     override fun initGL() {
-        println("OpenGL version: " + effective.majorVersion + "." + effective.minorVersion + " (Profile: " + effective.profile + ")")
         GL.createCapabilities()
-        renderer.setup()
+        renderer = rendererProvider()
+        register(renderer)
     }
 
-    private var lastDeltaTimeSec by Delegates.notNull<Float>()
+    fun redraw() {
+        dirtyCounter.getAndIncrement()
+        SwingUtilities.invokeLater(Runnable {
+            if (!this@LWJGLCanvas.isValid) {
+                GL.setCapabilities(null)
+                return@Runnable
+            }
+            this@LWJGLCanvas.render()
+        })
+    }
 
-    private var rotation = 0f
+    fun update(block: (T) -> Unit) {
+        if (!this::renderer.isInitialized) {
+            SwingUtilities.invokeLater(Runnable {
+                update(block)
+            })
+            return
+        }
+        block(renderer)
+        redraw()
+    }
 
     override fun paintGL() {
-        glViewport(0, 0, width, height)
+        val dirty = dirtyCounter.get().toULong()
+        if (drawCounter.get().toULong() >= dirty) {
+            return
+        }
+        drawCounter.set(dirty.toLong())
+        println("Redrawing ${drawCounter.get().toULong()}")
+
+        glViewport(0, 0, framebufferWidth, framebufferHeight)
         glClearColor(0f, 0f, 0f, 1f)
         glClear(GL_COLOR_BUFFER_BIT)
 
-        val halfWidth = 0.5f * width.toFloat()
-        val halfHeight = 0.5f * height.toFloat()
-        val transformationMatrix =
-            Matrix4f()
-                .setOrtho2D(-halfWidth, halfWidth, -halfHeight, halfHeight)
-                .rotateZ(rotation)
-        renderer.render(transformationMatrix = transformationMatrix)
-
-        rotation += lastDeltaTimeSec * rotationSpeed
+        renderer.draw()
 
         swapBuffers()
-    }
-
-    fun startLoop() {
-        val renderLoop: Runnable = object : Runnable {
-            var initialTime = System.currentTimeMillis()
-            override fun run() {
-                val now = System.currentTimeMillis()
-                lastDeltaTimeSec = (now - initialTime).toFloat() / 1_000f
-                if (!this@LWJGLCanvas.isValid) {
-                    GL.setCapabilities(null)
-                    return
-                }
-                this@LWJGLCanvas.render()
-                SwingUtilities.invokeLater(this)
-                initialTime = now
-            }
-        }
-        SwingUtilities.invokeLater(renderLoop)
-    }
-
-    fun dispose() {
-        renderer.dispose()
     }
 }
