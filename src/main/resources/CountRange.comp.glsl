@@ -12,16 +12,30 @@ layout(std430) buffer DataBuffer {
 
 layout(rgba32f) uniform readonly image3D uimg_noiseImage;
 
-shared float shared_minCount[32];
-shared float shared_maxCount[32];
+shared vec2 shared_minCount[32];
+shared vec2 shared_maxCount[32];
+
+void computeMinMax(float x, inout vec4 posMinNegMinPosMaxNegMax) {
+    if (x >= 0.0) {
+        posMinNegMinPosMaxNegMax.x = min(posMinNegMinPosMaxNegMax.x, abs(x));
+        posMinNegMinPosMaxNegMax.z = max(posMinNegMinPosMaxNegMax.z, abs(x));
+    }
+    if (x <= 0.0) {
+        posMinNegMinPosMaxNegMax.y = min(posMinNegMinPosMaxNegMax.y, abs(x));
+        posMinNegMinPosMaxNegMax.w = max(posMinNegMinPosMaxNegMax.w, abs(x));
+    }
+}
 
 void main() {
     vec4 count4 = imageLoad(uimg_noiseImage, ivec3(gl_GlobalInvocationID.xyz));
-    float maxCount = max4(count4);
-    float minCount = min4(count4);
+    vec4 posMinNegMinPosMaxNegMax = vec4(FLT_POS_INF, FLT_POS_INF, 0.0, 0.0);
+    computeMinMax(count4.x, posMinNegMinPosMaxNegMax);
+    computeMinMax(count4.y, posMinNegMinPosMaxNegMax);
+    computeMinMax(count4.z, posMinNegMinPosMaxNegMax);
+    computeMinMax(count4.w, posMinNegMinPosMaxNegMax);
 
-    float minCount1 = subgroupMin(maxCount);
-    float maxCount1 = subgroupMax(maxCount);
+    vec2 minCount1 = subgroupMin(posMinNegMinPosMaxNegMax.xy);
+    vec2 maxCount1 = subgroupMax(posMinNegMinPosMaxNegMax.zw);
     if (subgroupElect()) {
         shared_minCount[gl_SubgroupID] = minCount1;
         shared_maxCount[gl_SubgroupID] = maxCount1;
@@ -29,13 +43,17 @@ void main() {
     barrier();
 
     if (gl_SubgroupID == 0) {
-        float minCount2 = shared_minCount[gl_SubgroupInvocationID];
-        float maxCount2 = shared_maxCount[gl_SubgroupInvocationID];
-        float minCount3 = subgroupMin(minCount2);
-        float maxCount3 = subgroupMax(maxCount2);
+        vec2 minCount2 = shared_minCount[gl_SubgroupInvocationID];
+        vec2 maxCount2 = shared_maxCount[gl_SubgroupInvocationID];
+        vec2 minCount3 = subgroupMin(minCount2);
+        vec2 maxCount3 = subgroupMax(maxCount2);
+        ivec2 minCount3i = floatBitsToInt(minCount3);
+        ivec2 maxCount3i = floatBitsToInt(maxCount3);
         if (subgroupElect()) {
-            atomicMin(ssbo_data.data.x, floatBitsToInt(minCount3));
-            atomicMax(ssbo_data.data.y, floatBitsToInt(maxCount3));
+            atomicMin(ssbo_data.data.x, minCount3i.x);
+            atomicMin(ssbo_data.data.y, minCount3i.y);
+            atomicMax(ssbo_data.data.z, maxCount3i.x);
+            atomicMax(ssbo_data.data.w, maxCount3i.y);
         }
     }
 }

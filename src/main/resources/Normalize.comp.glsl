@@ -4,7 +4,7 @@
 
 layout(local_size_x = 16, local_size_y = 16) in;
 
-layout(std430) readonly buffer DataBuffer {
+layout(std430) buffer DataBuffer {
     vec4 data;
 } ssbo_data;
 
@@ -19,14 +19,22 @@ uniform int uval_dither;
 
 void main() {
     ivec3 texelPos = ivec3(gl_GlobalInvocationID.xyz);
-    vec2 dataMinMax = vec2(ssbo_data.data.xy);
+    vec4 data = ssbo_data.data;
+    float posMin = data.x;
+    float negMin = -data.y;
+    float posMax = data.z;
+    float negMax = -data.w;
+
+    float dataMin = min(posMin, negMax);
+    float dataMax = max(posMax, negMin);
+
     vec4 value = imageLoad(uimg_noiseImage, texelPos);
     if (uval_normalize == 1) {
-        value = linearStep(dataMinMax.x, dataMinMax.y, value);
+        value = linearStep(dataMin, dataMax, value);
         if (uval_flip == 1) {
             value = vec4(1.0) - value;
         }
-        value = mix(vec4(uval_minVal), vec4(uval_maxVal), value);
+        value = mix(vec4(0.0), vec4(uval_maxVal), value);
     }
     if (uval_dither == 1) {
         // TODO: dithering

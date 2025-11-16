@@ -7,5 +7,5 @@ layout(std430) buffer DataBuffer {
 } ssbo_data;
 
 void main() {
-    ssbo_data.data = uvec4(0x7F7FFFFFu, 0xff7fffffu, 0u, 0u);
+    ssbo_data.data = uvec4(0x7FFFFFFFu, 0x7FFFFFFFu, 0u, 0u);
 }

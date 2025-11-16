@@ -54,8 +54,8 @@ vec2 GradientNoise_2D_grad(vec2 x, int freq, uvec2 hashOffset) {
 
 vec2 noiseGradient(vec2 p, int freq, float alpha) {
     vec2 grad;
-    psrdnoise(p * float(freq), vec2(freq * 2), alpha, grad);
-    return grad;
+    float v = psrdnoise(p * float(freq), vec2(freq * 2), alpha, grad);
+    return v.xx;
 }
 
 float hash11(uint p) {

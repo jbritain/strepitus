@@ -2,6 +2,8 @@ package dev.luna5ama.strepitus
 
 import androidx.compose.foundation.text.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.input.*
 import io.github.composefluent.component.*
 import java.math.BigDecimal
@@ -47,9 +49,11 @@ fun DecimalInput(
     onValueChange: (BigDecimal) -> Unit,
     enabled: Boolean = true,
 ) {
+    var typedValue by remember { mutableStateOf(value.toString()) }
     TextField(
-        value = value.toString(),
+        value = typedValue,
         onValueChange = { str ->
+            typedValue = str
             str.toBigDecimalOrNull()?.let {
                 onValueChange(it)
             }
@@ -58,5 +62,10 @@ fun DecimalInput(
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         keyboardActions = KeyboardActions.Default,
+        modifier = Modifier.onFocusChanged { state ->
+            if (!state.isFocused) {
+                typedValue = value.toString()
+            }
+        }
     )
 }
