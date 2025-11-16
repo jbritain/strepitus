@@ -4,6 +4,7 @@ kotlin = "2.2.21"
 compose = "1.9.1"
 compose-fluent = "v0.1.0"
 compose-hot-reload = "1.0.0-rc03"
+collectionJvm = "1.5.0"
 
 kotlinx-coroutines = "1.9.0"
 
@@ -27,6 +28,7 @@ kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core",
 
 fastutil = { module = "it.unimi.dsi:fastutil", version.ref = "fastutil" }
 
+collectionJvm = { group = "androidx.collection", name = "collection-jvm", version.ref = "collectionJvm" }
 compose-fluent = { module = "io.github.compose-fluent:fluent", version.ref = "compose-fluent" }
 compose-fluent-icons = { module = "io.github.compose-fluent:fluent-icons-extended", version.ref = "compose-fluent" }
 

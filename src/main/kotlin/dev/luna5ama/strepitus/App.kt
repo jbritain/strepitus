@@ -152,10 +152,10 @@ fun App(renderer: NoiseGeneratorRenderer) {
         }
     }
 
-    renderer.mainParameters = mainParameters
-    renderer.outputProcessingParameters = outputProcessingParameters
-    renderer.viewerParameters = viewerParameters
-    renderer.noiseLayers = noiseLayers.toList()
+    renderer.mainParametersProvider = {mainParameters}
+    renderer.outputProcessingParametersProvider = { outputProcessingParameters }
+    renderer.viewerParametersProvider = { viewerParameters }
+    renderer.noiseLayersProvider = { noiseLayers.toList() }
 }
 
 enum class SideNavItem(val icon: ImageVector) {

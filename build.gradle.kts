@@ -49,6 +49,7 @@ dependencies {
 
     implementation(libs.fastutil)
     implementation(libs.joml)
+    implementation(libs.collectionJvm)
     implementation(libs.compose.fluent)
     implementation(libs.compose.fluent.icons)
 

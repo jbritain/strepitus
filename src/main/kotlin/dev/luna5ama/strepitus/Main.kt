@@ -114,5 +114,6 @@ fun main() {
 //    l.cancel()
 
     composeScene.close()
+    renderer.dispose()
     glfwDestroyWindow(windowHandle)
 }

@@ -1,5 +1,7 @@
 package dev.luna5ama.strepitus
 
+import androidx.collection.mutableScatterSetOf
+import androidx.compose.runtime.snapshots.*
 import dev.luna5ama.glwrapper.ShaderBindingSpecs
 import dev.luna5ama.glwrapper.ShaderProgram
 import dev.luna5ama.glwrapper.ShaderSource
@@ -11,16 +13,26 @@ import dev.luna5ama.glwrapper.enums.WrapMode
 import dev.luna5ama.glwrapper.objects.BufferObject
 import dev.luna5ama.glwrapper.objects.TextureObject
 import dev.luna5ama.strepitus.gl.register
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.pow
 
 class NoiseGeneratorRenderer(
     private val widthProvider: () -> Int,
     private val heightProvider: () -> Int,
 ) : AbstractRenderer() {
-    var mainParameters = MainParameters()
-    var outputProcessingParameters = OutputProcessingParameters()
-    var viewerParameters = ViewerParameters()
-    var noiseLayers = emptyList<NoiseLayerParameters<*>>()
+    lateinit var mainParametersProvider: () -> MainParameters
+    lateinit var outputProcessingParametersProvider: () -> OutputProcessingParameters
+    lateinit var viewerParametersProvider: () -> ViewerParameters
+    lateinit var noiseLayersProvider: () -> List<NoiseLayerParameters<*>>
+
+    private val mainParameters: MainParameters
+        get() = mainParametersProvider()
+    private val outputProcessingParameters: OutputProcessingParameters
+        get() = outputProcessingParametersProvider()
+    private val viewerParameters: ViewerParameters
+        get() = viewerParametersProvider()
+    private val noiseLayers: List<NoiseLayerParameters<*>>
+        get() = noiseLayersProvider()
 
     var frameWidth = 0
     var frameHeight = 0
@@ -70,6 +82,23 @@ class NoiseGeneratorRenderer(
         }
     }
 
+    private val readingStatesOnGenerate = mutableScatterSetOf<Any>()
+    private val readingStatesOnProcess = mutableScatterSetOf<Any>()
+    private val needRegenerate = AtomicBoolean(true)
+    private val needReprocess = AtomicBoolean(true)
+    private val applyObserverHandle: ObserverHandle = Snapshot.registerApplyObserver { changedStates, _ ->
+        if (needRegenerate.get()) return@registerApplyObserver
+        for (state in changedStates) {
+            if (state in readingStatesOnGenerate) {
+                needRegenerate.set(true)
+                break
+            }
+            if (!needReprocess.get() && state in readingStatesOnProcess) {
+                needReprocess.set(true)
+            }
+        }
+    }
+
     private val finalBlitShader = register(
         ShaderProgram(
             ShaderSource.Vert("Blit.vert.glsl"),
@@ -77,7 +106,7 @@ class NoiseGeneratorRenderer(
         )
     )
 
-    override fun draw() {
+    private fun generate() {
         noiseImage.destroy()
         outputImage.destroy()
 
@@ -111,7 +140,9 @@ class NoiseGeneratorRenderer(
         glDispatchCompute(mainParameters.width / 16, mainParameters.height / 16, mainParameters.slices)
 
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT)
+    }
 
+    private fun process() {
         countRangeShader.bind()
         countRangeShader.applyBinding(bindings)
         glDispatchCompute(mainParameters.width / 32, mainParameters.height / 32, mainParameters.slices)
@@ -127,6 +158,20 @@ class NoiseGeneratorRenderer(
         normalizeShader.uniform1i("uval_dither", if (outputProcessingParameters.dither) 1 else 0)
         glDispatchCompute(mainParameters.width / 16, mainParameters.height / 16, mainParameters.slices)
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT)
+    }
+
+    override fun draw() {
+        if (needRegenerate.getAndSet(false)) {
+            needReprocess.set(true)
+            Snapshot.observe(readObserver = readingStatesOnGenerate::add) {
+                generate()
+            }
+        }
+        if (needReprocess.getAndSet(false)) {
+            Snapshot.observe(readObserver = readingStatesOnProcess::add) {
+                process()
+            }
+        }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
         glViewport(windowWidth - frameWidth, 0, frameWidth, frameHeight)
@@ -147,7 +192,12 @@ class NoiseGeneratorRenderer(
         offsetX -= viewerParameters.centerX.toDouble()
         var offsetY = frameHeight / 2.0 - mainParameters.height / 2.0
         offsetY += viewerParameters.centerY.toDouble()
-        finalBlitShader.uniform2f("uval_offset",offsetX.toFloat(), offsetY.toFloat())
+        finalBlitShader.uniform2f("uval_offset", offsetX.toFloat(), offsetY.toFloat())
         basic.drawQuad()
+    }
+
+    fun dispose() {
+        applyObserverHandle.dispose()
+        this.destroy()
     }
 }
