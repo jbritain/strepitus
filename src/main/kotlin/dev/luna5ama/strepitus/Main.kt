@@ -17,8 +17,8 @@ import org.lwjgl.opengl.GL
 
 @OptIn(InternalComposeUiApi::class)
 fun main() {
-    var width = 1920
-    var height = 1080
+    val initWidth = 1920
+    val initHeight = 1080
 
     glfwInit()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4)
@@ -28,7 +28,7 @@ fun main() {
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 0)
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE)
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE)
-    val windowHandle: Long = glfwCreateWindow(width, height, "Strepitus", 0L, 0L)
+    val windowHandle: Long = glfwCreateWindow(initWidth, initHeight, "Strepitus", 0L, 0L)
     glfwMakeContextCurrent(windowHandle)
     glfwSwapInterval(1)
 
@@ -37,7 +37,7 @@ fun main() {
     GL.createCapabilities()
 
     val context = DirectContext.makeGL()
-    var renderTarget = BackendRenderTarget.makeGL(width, height, 1, 8, 0, 0x8058)
+    var renderTarget = BackendRenderTarget.makeGL(initWidth, initHeight, 1, 8, 0, 0x8058)
     var surface = Surface.makeFromBackendRenderTarget(
         context,
         renderTarget,
@@ -57,7 +57,8 @@ fun main() {
     var renderFunc = {}
 
     val frameDispatcher = FrameDispatcher(glfwDispatcher) { renderFunc() }
-    val renderer = NoiseGeneratorRenderer(scope, frameDispatcher,{ width }, { height })
+    val state = GLFWWindowState()
+    val renderer = NoiseGeneratorRenderer(scope, frameDispatcher,state::windowWidth, state::windowHeight)
     val readingStatesOnRender = mutableScatterSetOf<Any>()
 
     val applyObserverHandle: ObserverHandle = Snapshot.registerApplyObserver { changedStates, _ ->
@@ -69,37 +70,24 @@ fun main() {
         }
     }
 
-
     val temp = floatArrayOf(0f)
     val dummy = floatArrayOf(1.0f)
     glfwGetWindowContentScale(windowHandle, temp, dummy)
     val composeScene = CanvasLayersComposeScene(
         Density(temp[0]),
-        size = IntSize(width, height),
+        size = state.windowSize,
         invalidate = frameDispatcher::scheduleFrame,
-        coroutineContext = glfwDispatcher
+        coroutineContext = glfwDispatcher,
+        platformContext = state.platformContext
     )
+    state.init(windowHandle, composeScene, renderer)
 
-    renderFunc = {
-        Snapshot.observe(readObserver = readingStatesOnRender::add) {
-            renderer.draw()
-        }
-        context.resetGLAll()
-        context.flush()
-        composeScene.size = IntSize(width, height)
-        composeScene.render(surface.canvas.asComposeCanvas(), System.nanoTime())
-
-        context.flush()
-        glfwSwapBuffers(windowHandle)
-    }
-
-    glfwSetWindowSizeCallback(windowHandle) { _, windowWidth, windowHeight ->
-        width = windowWidth
-        height = windowHeight
+    state.onResize { newWidth, newHeight ->
         surface.close()
         renderTarget.close()
 
-        renderTarget = BackendRenderTarget.makeGL(width, height, 1, 8, 0, 0x8058)
+        composeScene.size = IntSize(newWidth, newWidth)
+        renderTarget = BackendRenderTarget.makeGL(newWidth, newHeight, 1, 8, 0, 0x8058)
         surface = Surface.makeFromBackendRenderTarget(
             context,
             renderTarget,
@@ -109,10 +97,22 @@ fun main() {
             SurfaceProps()
         )!!
 
-
         glfwSwapInterval(0)
         renderFunc()
         glfwSwapInterval(1)
+    }
+
+    renderFunc = {
+        Snapshot.observe(readObserver = readingStatesOnRender::add) {
+            renderer.draw()
+        }
+        context.resetGLAll()
+        context.flush()
+        composeScene.size = state.windowSize
+        composeScene.render(surface.canvas.asComposeCanvas(), System.nanoTime())
+
+        context.flush()
+        glfwSwapBuffers(windowHandle)
     }
 
     composeScene.subscribeToGLFWEvents(windowHandle, renderer)
