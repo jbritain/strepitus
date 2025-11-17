@@ -4,6 +4,7 @@
 #include "/util/Hash.glsl"
 #include "/util/Mat2.glsl"
 #include "/util/noise/psrdnoise2.glsl"
+#include "/util/noise/psrdnoise3.glsl"
 
 layout(local_size_x = 16, local_size_y = 16) in;
 
@@ -57,9 +58,16 @@ vec2 GradientNoise_2D_grad(vec2 x, int freq, uvec2 hashOffset) {
     return grad;
 }
 
-float simplexNoise2(vec2 p, int freq, float alpha) {
+vec4 simplexNoise2(vec3 p, int freq, float alpha) {
     vec2 grad;
-    return psrdnoise(p * float(freq), vec2(freq), alpha, grad);
+    float value = psrdnoise2(p.xy * float(freq) / 2.0, vec2(freq), alpha, grad);
+    return vec4(grad, 0.0, value);
+}
+
+vec4 simplexNoise3(vec3 p, int freq, float alpha) {
+    vec3 grad;
+    float value = psrdnoise3(p * float(freq) / 2.0, vec3(freq), alpha, grad);
+    return vec4(grad, value);
 }
 
 float hash11(uint p) {
@@ -70,6 +78,7 @@ void main() {
     ivec3 texelPos = ivec3(gl_GlobalInvocationID.xyz);
 
     vec3 noisePos = (vec3(texelPos) + vec3(0.5)) / uval_noiseTexSizeF;
+    noisePos = noisePos * 2.0 - 1.0;
 
     float freq = uval_baseFrequency;
     float amp = 1.0;
@@ -78,7 +87,16 @@ void main() {
     uint k = 0;
 
     for (int i = 0; i < uval_octaves; ++i) {
-        v += amp * simplexNoise2(noisePos.xy, int(freq * 2.0), hash11(k++) * PI_2).xxxx;
+        vec4 noiseV;
+        if (true) {
+            noiseV = simplexNoise3(noisePos, int(freq), hash11(k++) * PI_2);
+        }
+
+        if (true) {
+            noiseV = noiseV.aaaa;
+        }
+
+        v += amp * noiseV;
         amp *= uval_persistence;
         freq *= uval_lacunarity;
     }

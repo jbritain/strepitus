@@ -66,7 +66,7 @@
 // The rotation by alpha uses one single addition. Unlike the 3-D version
 // of psrdnoise(), setting alpha == 0.0 gives no speedup.
 //
-float psrdnoise(vec2 x, vec2 period, float alpha, out vec2 gradient) {
+float psrdnoise2(vec2 x, vec2 period, float alpha, out vec2 gradient) {
 
 	// Transform to simplex space (axis-aligned hexagonal grid)
 	vec2 uv = vec2(x.x + x.y*0.5, x.y);
@@ -100,9 +100,9 @@ float psrdnoise(vec2 x, vec2 period, float alpha, out vec2 gradient) {
 		xw = vec3(v0.x, v1.x, v2.x);
 		yw = vec3(v0.y, v1.y, v2.y);
 		if(period.x > 0.0)
-			xw = mod(vec3(v0.x, v1.x, v2.x), period.x);
+			xw = mod(vec3(v0.x, v1.x, v2.x) + period.x / 2.0, period.x) - period.x / 2.0;
 		if(period.y > 0.0)
-			yw = mod(vec3(v0.y, v1.y, v2.y), period.y);
+			yw = mod(vec3(v0.y, v1.y, v2.y) + period.y / 2.0, period.y) - period.y / 2.0;
 		// Transform back to simplex space and fix rounding errors
 		iu = floor(xw + 0.5*yw + 0.5);
 		iv = floor(yw + 0.5);

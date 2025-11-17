@@ -1,3 +1,5 @@
+#include "/util/Hash.glsl"
+
 //
 // psrdnoise3.glsl
 //
@@ -90,7 +92,7 @@ vec4 permute(vec4 x) {
 // eliminate the code for computing it. This speeds up the function by
 // around 10%.
 //
-float psrdnoise(vec3 x, vec3 period, float alpha, out vec3 gradient)
+float psrdnoise3(vec3 x, vec3 period, float alpha, out vec3 gradient)
 {
 
 #ifndef PERLINGRID
@@ -164,9 +166,9 @@ float psrdnoise(vec3 x, vec3 period, float alpha, out vec3 gradient)
     vec4 vy = vec4(v0.y, v1.y, v2.y, v3.y);
     vec4 vz = vec4(v0.z, v1.z, v2.z, v3.z);
 	// Wrap to periods where specified
-	if(period.x > 0.0) vx = mod(vx, period.x);
-	if(period.y > 0.0) vy = mod(vy, period.y);
-	if(period.z > 0.0) vz = mod(vz, period.z);
+	if(period.x > 0.0) vx = mod(vx + period.x / 2.0, period.x) - period.x / 2.0;
+	if(period.y > 0.0) vy = mod(vy + period.y / 2.0, period.y) - period.y / 2.0;
+	if(period.z > 0.0) vz = mod(vz + period.z / 2.0, period.z) - period.z / 2.0;
     // Transform back
 #ifndef PERLINGRID
     i0 = M * vec3(vx.x, vy.x, vz.x);
@@ -192,10 +194,24 @@ float psrdnoise(vec3 x, vec3 period, float alpha, out vec3 gradient)
   }
 
   // Compute one pseudo-random hash value for each corner
-  vec4 hash = permute( permute( permute( 
-              vec4(i0.z, i1.z, i2.z, i3.z ))
-            + vec4(i0.y, i1.y, i2.y, i3.y ))
-            + vec4(i0.x, i1.x, i2.x, i3.x ));
+//  vec4 hash = permute(
+//          permute(
+//                  permute(vec4(i0.z, i1.z, i2.z, i3.z )
+//          )+vec4(i0.y, i1.y, i2.y, i3.y ))
+//          + vec4(i0.x, i1.x, i2.x, i3.x )
+//  );
+
+    uvec3 i0u = uvec3(ivec3(i0));
+    uvec3 i1u = uvec3(ivec3(i1));
+    uvec3 i2u = uvec3(ivec3(i2));
+    uvec3 i3u = uvec3(ivec3(i3));
+
+    uvec4 hashV;
+    hashV.x = hash_31_q5(uvec3(ivec3(i0u.z, i0u.y, i0u.x)));
+    hashV.y = hash_31_q5(uvec3(ivec3(i1u.z, i1u.y, i1u.x)));
+    hashV.z = hash_31_q5(uvec3(ivec3(i2u.z, i2u.y, i2u.x)));
+    hashV.w = hash_31_q5(uvec3(ivec3(i3u.z, i3u.y, i3u.x)));
+    vec4 hash = vec4(hashV) * (288.0 / float(0xffffffffU));
 
   // Compute generating gradients from a Fibonacci spiral on the unit sphere
   vec4 theta = hash * 3.883222077;  // 2*pi/golden ratio

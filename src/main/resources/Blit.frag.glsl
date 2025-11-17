@@ -25,8 +25,8 @@ vec3 dither(vec3 x, float noiseV) {
 }
 
 void main() {
-    vec2 screenPos = (gl_FragCoord.xy - uval_offset) / uval_noiseTexSizeF.xy;
-    vec3 samplePos = vec3(screenPos, uval_slice);
+    vec3 pixelPos = vec3(gl_FragCoord.xy - uval_offset, uval_slice);
+    vec3 samplePos = pixelPos / uval_noiseTexSizeF;
     samplePos = samplePos * 2.0 - 1.0;
     samplePos.xy *= uval_zoom;
     samplePos = samplePos * 0.5 + 0.5;
