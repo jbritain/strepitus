@@ -31,11 +31,11 @@ uvec3 _noise_hash_coord(vec3 x) {
 }
 
 uvec2 hashCoordWarp(vec2 x, vec2 freq) {
-    return _noise_hash_coord(mod(x + freq / 2.0, freq) - freq / 2.0);
+    return _noise_hash_coord(mod(floor(x) + freq / 2.0, freq) - freq / 2.0);
 }
 
 uvec3 hashCoordWarp(vec3 x, vec3 freq) {
-    return _noise_hash_coord(mod(x + freq / 2.0, freq) - freq / 2.0);
+    return _noise_hash_coord(mod(floor(x) + freq / 2.0, freq) - freq / 2.0);
 }
 
 #endif
