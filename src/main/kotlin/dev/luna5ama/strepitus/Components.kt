@@ -6,11 +6,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.focus.*
 import androidx.compose.ui.text.input.*
+import dev.luna5ama.strepitus.params.DisplayNameOverride
 import io.github.composefluent.component.*
 import java.math.BigDecimal
-import java.math.MathContext
 import java.math.RoundingMode
 import kotlin.math.max
+import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
@@ -212,6 +213,56 @@ fun SliderDecimalInput(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = enabled,
             )
+        }
+    }
+}
+
+@Composable
+inline fun <reified T: Enum<*>> EnumDropdownMenu(
+    value: T,
+    noinline onValueChange: (T) -> Unit,
+    noinline buttonText: @Composable (String) -> Unit = { text -> Text(text) }
+) {
+    EnumDropdownMenu(
+        value = value,
+        enumType = T::class,
+        onValueChange = onValueChange,
+        buttonText = buttonText
+    )
+}
+
+@Suppress("UNCHECKED_CAST")
+@Composable
+fun <T : Enum<*>> EnumDropdownMenu(
+    value: T,
+    enumType: KClass<T>,
+    onValueChange: (T) -> Unit,
+    buttonText: @Composable (String) -> Unit = { text -> Text(text) }
+) {
+    var expanded by remember { mutableStateOf(false) }
+    DropDownButton(
+        onClick = { expanded = true },
+    ) {
+        fun enumName(enumConst: Enum<*>): String =
+            (enumConst as? DisplayNameOverride)?.displayName ?: enumConst.name
+
+        buttonText(enumName(value))
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            val enumClass = enumType.java
+            enumClass.enumConstants.forEach { enumConst ->
+                DropdownMenuItem(
+                    onClick = {
+                        onValueChange(enumConst)
+                        expanded = false
+                    },
+                ) {
+                    Text(enumName(enumConst))
+                }
+            }
         }
     }
 }

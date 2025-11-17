@@ -5,6 +5,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.*
 import androidx.compose.ui.*
 import androidx.compose.ui.unit.*
+import dev.luna5ama.strepitus.EnumDropdownMenu
 import io.github.composefluent.*
 import io.github.composefluent.component.*
 import io.github.composefluent.icons.*
@@ -46,11 +47,11 @@ enum class DistanceFunction {
     Chebyshev
 }
 
-enum class NoiseType(val defaultParameter: NoiseLayerParameters) {
-    Value(NoiseLayerParameters(specificParameters = NoiseSpecificParameters.Value())),
-    Perlin(NoiseLayerParameters(specificParameters = NoiseSpecificParameters.Perlin())),
-    Simplex(NoiseLayerParameters(specificParameters = NoiseSpecificParameters.Simplex())),
-    Worley(NoiseLayerParameters(specificParameters = NoiseSpecificParameters.Worley())),
+enum class NoiseType(val defaultParameter: NoiseSpecificParameters) {
+    Value(NoiseSpecificParameters.Value()),
+    Perlin(NoiseSpecificParameters.Perlin()),
+    Simplex(NoiseSpecificParameters.Simplex()),
+    Worley(NoiseSpecificParameters.Worley()),
 }
 
 enum class GradientMode {
@@ -122,15 +123,25 @@ fun NoiseLayerEditor(
             layer.expanded,
             onExpandedChanged = { layers[i] = layer.copy(expanded = it) },
             icon = {
-                Spacer(modifier = Modifier.Companion.width(FluentTheme.typography.subtitle.fontSize.value.dp * 3.0f))
+                Spacer(modifier = Modifier.width(FluentTheme.typography.subtitle.fontSize.value.dp * 3.0f))
                 Icon(
                     imageVector = Icons.Default.ReOrderDotsVertical,
                     contentDescription = "",
-                    modifier = Modifier.Companion.size(FluentTheme.typography.subtitle.fontSize.value.dp)
+                    modifier = Modifier.size(FluentTheme.typography.subtitle.fontSize.value.dp)
                 )
             },
             heading = {
-                Text(layer.specificParameters::class.simpleName!!, style = FluentTheme.typography.subtitle)
+                EnumDropdownMenu(
+                    value = layer.specificParameters.type,
+                    onValueChange = { newType ->
+                        if (newType != layer.specificParameters.type) {
+                            layers[i] = layer.copy(specificParameters = newType.defaultParameter)
+                        }
+                    },
+                    buttonText = {
+                        Text(it, style = FluentTheme.typography.subtitle, modifier = Modifier.padding(vertical = 8.dp))
+                    }
+                )
             },
             trailing = {
                 Button(
@@ -175,7 +186,7 @@ fun NoiseLayerEditor(
                 NoiseType.entries.forEach { noiseType ->
                     DropdownMenuItem(
                         onClick = {
-                            layers.add(noiseType.defaultParameter)
+                            layers.add(NoiseLayerParameters(specificParameters = noiseType.defaultParameter))
                             showAddMenu = false
                         },
                     ) {

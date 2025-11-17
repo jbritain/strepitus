@@ -121,33 +121,11 @@ private fun ParameterField(
 
             Enum::class.isSuperclassOf(propType) -> {
                 CardExpanderItem(heading = { Text(propName) }) {
-                    var enumDropdownExpanded by remember { mutableStateOf(false) }
-                    DropDownButton(
-                        onClick = { enumDropdownExpanded = true },
-                    ) {
-                        fun enumName(enumConst: Enum<*>): String =
-                            (enumConst as? DisplayNameOverride)?.displayName ?: enumConst.name
-
-                        Text(enumName(propValue as Enum<*>))
-
-                        DropdownMenu(
-                            expanded = enumDropdownExpanded,
-                            onDismissRequest = { enumDropdownExpanded = false },
-                        ) {
-                            val enumClass = propType.java as Class<out Enum<*>>
-                            enumClass.enumConstants.forEach { enumConst ->
-                                DropdownMenuItem(
-                                    onClick = {
-                                        newParameterFunc(enumConst)
-                                        enumDropdownExpanded = false
-                                    },
-                                ) {
-                                    val name = enumName(enumConst)
-                                    Text(name)
-                                }
-                            }
-                        }
-                    }
+                    EnumDropdownMenu(
+                        propValue as Enum<*>,
+                        propType as KClass<Enum<*>>,
+                        newParameterFunc
+                    )
                 }
             }
         }
