@@ -22,7 +22,7 @@ uniform int uval_baseFrequency;
 uniform int uval_octaves;
 uniform float uval_lacunarity;
 uniform float uval_persistence;
-uniform int uval_compositeMode;// 0: add, 1: subtract, 2: multiply
+uniform int uval_compositeMode;// 0: none, 1: add, 2: subtract, 3: multiply
 
 vec4 valueNoise2(vec3 p, float freq, float alpha) {
     vec3 result = ValueNoise_2D_valueGrad(p.xy * freq / 2.0, vec2(freq));
@@ -96,10 +96,12 @@ void main() {
 
     vec4 outputValue = imageLoad(uimg_noiseImage, texelPos);
     if (uval_compositeMode == 0) {
-        outputValue += v;
+        outputValue = v;
     } else if (uval_compositeMode == 1) {
-        outputValue -= v;
+        outputValue += v;
     } else if (uval_compositeMode == 2) {
+        outputValue -= v;
+    } else if (uval_compositeMode == 3) {
         outputValue *= v;
     }
     imageStore(uimg_noiseImage, texelPos, outputValue);

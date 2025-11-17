@@ -14,6 +14,7 @@ import kotlinx.serialization.Transient
 import java.math.BigDecimal
 
 enum class CompositeMode {
+    None,
     Add,
     Subtract,
     Multiply
