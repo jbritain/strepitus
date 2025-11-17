@@ -18,9 +18,15 @@ enum class CompositeMode {
     Multiply
 }
 
+enum class DimensionType(override val displayName: String) : DisplayNameOverride {
+    _2D("2D"),
+    _3D("3D"),
+}
+
 data class NoiseLayerParameters(
     val enabled: Boolean = true,
     val compositeMode: CompositeMode = CompositeMode.Add,
+    val dimensionType: DimensionType = DimensionType._2D,
     @IntRangeVal(min = 1, max = 32)
     val baseFrequency: Int = 4,
     @IntRangeVal(min = 1, max = 16)
@@ -40,11 +46,11 @@ enum class DistanceFunction {
     Chebyshev
 }
 
-enum class NoiseType {
-    Value,
-    Perlin,
-    Simplex,
-    Worley
+enum class NoiseType(val defaultParameter: NoiseLayerParameters) {
+    Value(NoiseLayerParameters(specificParameters = NoiseSpecificParameters.Value())),
+    Perlin(NoiseLayerParameters(specificParameters = NoiseSpecificParameters.Perlin())),
+    Simplex(NoiseLayerParameters(specificParameters = NoiseSpecificParameters.Simplex())),
+    Worley(NoiseLayerParameters(specificParameters = NoiseSpecificParameters.Worley())),
 }
 
 enum class GradientMode {
@@ -148,18 +154,35 @@ fun NoiseLayerEditor(
         horizontalArrangement = Arrangement.Center,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Button(
-            onClick = {
-                layers.add(NoiseLayerParameters())
-            },
-            buttonColors = ButtonDefaults.accentButtonColors(),
-            iconOnly = true,
-            modifier = Modifier.fillMaxWidth(0.5f)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Add Layer"
-            )
+        Box(modifier = Modifier.fillMaxWidth(0.5f)) {
+            var showAddMenu by remember { mutableStateOf(false) }
+            Button(
+                onClick = { showAddMenu = true },
+                buttonColors = ButtonDefaults.accentButtonColors(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null
+                )
+                Spacer(Modifier.width(8.dp))
+            }
+
+            DropdownMenu(
+                expanded = showAddMenu,
+                onDismissRequest = { showAddMenu = false }
+            ) {
+                NoiseType.entries.forEach { noiseType ->
+                    DropdownMenuItem(
+                        onClick = {
+                            layers.add(noiseType.defaultParameter)
+                            showAddMenu = false
+                        },
+                    ) {
+                        Text(noiseType.name)
+                    }
+                }
+            }
         }
     }
 }

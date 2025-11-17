@@ -28,37 +28,17 @@ float _ValueNoise_2D_hash(uvec2 x) {
     return hash_uintToFloat(hash_21_q5(x)) * 2.0 - 1.0;
 }
 
-// [QUI13a]
-float ValueNoise_2D_value(vec2 x) {
-    uvec2 i = _noise_hash_coord(x);
-    vec2 w = fract(x);
-
-    vec2 u = _NOISE_INTERPO(w);
-
-    float va = _ValueNoise_2D_hash(i + uvec2(0, 0));
-    float vb = _ValueNoise_2D_hash(i + uvec2(1, 0));
-    float vc = _ValueNoise_2D_hash(i + uvec2(0, 1));
-    float vd = _ValueNoise_2D_hash(i + uvec2(1, 1));
-
-    float xy0 = mix(va, vb, u.x);
-    float xy1 = mix(vc, vd, u.x);
-    float value = mix(xy0, xy1, u.y);
-
-    return value;
-}
-
 // [QUI17a]
-vec3 ValueNoise_2D_valueGrad(vec2 x) {
-    uvec2 i = _noise_hash_coord(x);
+vec3 ValueNoise_2D_valueGrad(vec2 x, vec2 freq) {
     vec2 w = fract(x);
 
     vec2 u = _NOISE_INTERPO(w);
     vec2 du = _NOISE_INTERPO_GRAD(w);
 
-    float va = _ValueNoise_2D_hash(i + uvec2(0, 0));
-    float vb = _ValueNoise_2D_hash(i + uvec2(1, 0));
-    float vc = _ValueNoise_2D_hash(i + uvec2(0, 1));
-    float vd = _ValueNoise_2D_hash(i + uvec2(1, 1));
+    float va = _ValueNoise_2D_hash(hashCoordWarp(x + vec2(0.0, 0.0), freq));
+    float vb = _ValueNoise_2D_hash(hashCoordWarp(x + vec2(1.0, 0.0), freq));
+    float vc = _ValueNoise_2D_hash(hashCoordWarp(x + vec2(0.0, 1.0), freq));
+    float vd = _ValueNoise_2D_hash(hashCoordWarp(x + vec2(1.0, 1.0), freq));
 
     float xy0 = mix(va, vb, u.x);
     float xy1 = mix(vc, vd, u.x);
@@ -72,63 +52,27 @@ vec3 ValueNoise_2D_valueGrad(vec2 x) {
     return vec3(value, grad);
 }
 
-float ValueNoise_2D_value_fbm(FBMParameters params, vec2 position) {
-    float value = 0.0;
-    float amplitude = 1.0;
-    float currentFrequency = params.frequency;
-    for (uint i = 0; i < params.octaveCount; i++) {
-        value += ValueNoise_2D_value(position * currentFrequency) * amplitude;
-        amplitude *= params.persistence;
-        currentFrequency *= params.lacunarity;
-    }
-    return value;
-}
-
 
 // -------------------------------------------------- Value Noise 3D --------------------------------------------------
 float _ValueNoise_3D_hash(uvec3 x) {
     return hash_uintToFloat(hash_31_q5(x)) * 2.0 - 1.0;
 }
 
-// [QUI13b]
-float ValueNoise_3D_value(vec3 x) {
-    uvec3 i = _noise_hash_coord(x);
-    vec3 w = fract(x);
-
-    vec3 u = _NOISE_INTERPO(w);
-
-    float va = _ValueNoise_3D_hash(i + uvec3(0, 0, 0));
-    float vb = _ValueNoise_3D_hash(i + uvec3(1, 0, 0));
-    float vc = _ValueNoise_3D_hash(i + uvec3(0, 1, 0));
-    float vd = _ValueNoise_3D_hash(i + uvec3(1, 1, 0));
-    float ve = _ValueNoise_3D_hash(i + uvec3(0, 0, 1));
-    float vf = _ValueNoise_3D_hash(i + uvec3(1, 0, 1));
-    float vg = _ValueNoise_3D_hash(i + uvec3(0, 1, 1));
-    float vh = _ValueNoise_3D_hash(i + uvec3(1, 1, 1));
-
-    float xy0 = mix(mix(va, vb, u.x), mix(vc, vd, u.x), u.y);
-    float xy1 = mix(mix(ve, vf, u.x), mix(vg, vh, u.x), u.y);
-    float value = mix(xy0, xy1, u.z);
-
-    return value;
-}
-
 // [QUI17b]
-vec4 ValueNoise_3D_valueGrad(vec3 x) {
-    uvec3 i = _noise_hash_coord(x);
+vec4 ValueNoise_3D_valueGrad(vec3 x, vec3 freq) {
     vec3 w = fract(x);
 
     vec3 u = _NOISE_INTERPO(w);
     vec3 du = _NOISE_INTERPO_GRAD(w);
 
-    float va = _ValueNoise_3D_hash(i + uvec3(0, 0, 0));
-    float vb = _ValueNoise_3D_hash(i + uvec3(1, 0, 0));
-    float vc = _ValueNoise_3D_hash(i + uvec3(0, 1, 0));
-    float vd = _ValueNoise_3D_hash(i + uvec3(1, 1, 0));
-    float ve = _ValueNoise_3D_hash(i + uvec3(0, 0, 1));
-    float vf = _ValueNoise_3D_hash(i + uvec3(1, 0, 1));
-    float vg = _ValueNoise_3D_hash(i + uvec3(0, 1, 1));
-    float vh = _ValueNoise_3D_hash(i + uvec3(1, 1, 1));
+    float va = _ValueNoise_3D_hash(hashCoordWarp(x + vec3(0.0, 0.0, 0.0), freq));
+    float vb = _ValueNoise_3D_hash(hashCoordWarp(x + vec3(1.0, 0.0, 0.0), freq));
+    float vc = _ValueNoise_3D_hash(hashCoordWarp(x + vec3(0.0, 1.0, 0.0), freq));
+    float vd = _ValueNoise_3D_hash(hashCoordWarp(x + vec3(1.0, 1.0, 0.0), freq));
+    float ve = _ValueNoise_3D_hash(hashCoordWarp(x + vec3(0.0, 0.0, 1.0), freq));
+    float vf = _ValueNoise_3D_hash(hashCoordWarp(x + vec3(1.0, 0.0, 1.0), freq));
+    float vg = _ValueNoise_3D_hash(hashCoordWarp(x + vec3(0.0, 1.0, 1.0), freq));
+    float vh = _ValueNoise_3D_hash(hashCoordWarp(x + vec3(1.0, 1.0, 1.0), freq));
 
     float xy0 = mix(mix(va, vb, u.x), mix(vc, vd, u.x), u.y);
     float xy1 = mix(mix(ve, vf, u.x), mix(vg, vh, u.x), u.y);
@@ -141,18 +85,6 @@ vec4 ValueNoise_3D_valueGrad(vec3 x) {
     );
 
     return vec4(value, grad);
-}
-
-float ValueNoise_3D_value_fbm(FBMParameters params, vec3 position) {
-    float value = 0.0;
-    float amplitude = 1.0;
-    float currentFrequency = params.frequency;
-    for (uint i = 0; i < params.octaveCount; i++) {
-        value += ValueNoise_3D_value(position * currentFrequency) * amplitude;
-        amplitude *= params.persistence;
-        currentFrequency *= params.lacunarity;
-    }
-    return value;
 }
 
 #endif

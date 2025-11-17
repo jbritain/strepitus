@@ -3,6 +3,11 @@ package dev.luna5ama.strepitus
 fun camelCaseToWords(input: String): String {
     return buildString {
         input.forEachIndexed { index, c ->
+            if (c == '_' && index != 0 ) {
+                append(' ')
+                return@forEachIndexed
+            }
+
             if (c.isUpperCase() && index != 0) {
                 append(' ')
             }
@@ -18,6 +23,11 @@ fun camelCaseToWords(input: String): String {
 fun camelCaseToTitle(input: String): String {
     return buildString {
         input.forEachIndexed { index, c ->
+            if (c == '_' && index != 0 ) {
+                append(' ')
+                return@forEachIndexed
+            }
+
             if (c.isUpperCase() && index != 0) {
                 append(' ')
             }

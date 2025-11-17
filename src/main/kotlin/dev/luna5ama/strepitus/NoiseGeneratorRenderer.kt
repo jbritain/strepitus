@@ -195,6 +195,8 @@ class NoiseGeneratorRenderer(
                 mainParameters.slices.toFloat()
             )
 
+            generateNoiseShader.uniform1i("uval_noiseType", it.specificParameters.type.ordinal)
+            generateNoiseShader.uniform1i("uval_dimensionType", it.dimensionType.ordinal)
             val gradientMode = (it.specificParameters as? NoiseSpecificParameters.HasGradient)?.gradientMode?.ordinal ?: 0
             generateNoiseShader.uniform1i("uval_gradientMode", gradientMode)
 

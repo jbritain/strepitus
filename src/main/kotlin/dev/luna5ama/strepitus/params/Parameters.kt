@@ -125,7 +125,11 @@ private fun ParameterField(
                     DropDownButton(
                         onClick = { enumDropdownExpanded = true },
                     ) {
-                        Text((propValue as Enum<*>).name)
+                        fun enumName(enumConst: Enum<*>): String =
+                            (enumConst as? DisplayNameOverride)?.displayName ?: enumConst.name
+
+                        Text(enumName(propValue as Enum<*>))
+
                         DropdownMenu(
                             expanded = enumDropdownExpanded,
                             onDismissRequest = { enumDropdownExpanded = false },
@@ -138,7 +142,8 @@ private fun ParameterField(
                                         enumDropdownExpanded = false
                                     },
                                 ) {
-                                    Text(enumConst.name)
+                                    val name = enumName(enumConst)
+                                    Text(name)
                                 }
                             }
                         }
@@ -152,6 +157,10 @@ private fun ParameterField(
 @Target(AnnotationTarget.PROPERTY, AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class DisplayName(val name: String)
+
+interface DisplayNameOverride {
+    val displayName: String
+}
 
 val KAnnotatedElement.displayName: String?
     get() = this.annotations.filterIsInstance<DisplayName>().firstOrNull()?.name
