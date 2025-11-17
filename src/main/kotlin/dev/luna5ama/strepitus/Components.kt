@@ -20,14 +20,14 @@ import kotlin.reflect.jvm.isAccessible
 fun ToggleSwitch(
     checked: Boolean,
     onCheckStateChange: (Boolean) -> Unit,
-    textOn: String = "On",
-    textOff: String = "Off",
+    textOn: String? = "On",
+    textOff: String? = "Off"
 ) {
     Switcher(
         checked = checked,
         onCheckStateChange = onCheckStateChange,
         text = if (checked) textOn else textOff,
-        textBefore = true
+        textBefore = true,
     )
 }
 

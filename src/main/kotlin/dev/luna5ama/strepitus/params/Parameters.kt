@@ -33,17 +33,17 @@ fun <T : Any> ParameterEditor(
     val copyFunc = clazz.memberFunctions.first { member -> member.name == "copy" }
     val copyFunParameterOrder = copyFunc.parameters.drop(1).withIndex().associate { it.value.name!! to it.index }
     val properties = clazz.memberProperties
-        .filter { it.annotations.none { ann -> ann is Transient } }
         .filter { it.javaField != null }
+        .filter { it.annotations.none { ann -> ann is HiddenFromAutoParameter } }
         .sortedBy { copyFunParameterOrder[it.name] ?: Int.MAX_VALUE }
 
-    properties.forEachIndexed { index, it ->
+    properties.forEach {
         val propValue = it.get(parameters)!!
         val newParameterFunc = { newValue: Any ->
             val newParameters = copyFunc.callBy(
                 mapOf(
                     copyFunc.parameters[0] to parameters,
-                    copyFunc.parameters[1 + index] to newValue
+                    copyFunc.parameters[1 + copyFunParameterOrder[it.name]!!] to newValue
                 )
             ) as T
             onChange(newParameters)
@@ -146,6 +146,10 @@ val KAnnotatedElement.displayName: String?
 @Target(AnnotationTarget.PROPERTY)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class IntRangeVal(val min: Int, val max: Int, val step: Int = 1)
+
+@Target(AnnotationTarget.PROPERTY)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class HiddenFromAutoParameter
 
 @Target(AnnotationTarget.PROPERTY)
 @Retention(AnnotationRetention.RUNTIME)

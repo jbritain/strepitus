@@ -6,11 +6,11 @@ import androidx.compose.runtime.snapshots.*
 import androidx.compose.ui.*
 import androidx.compose.ui.unit.*
 import dev.luna5ama.strepitus.EnumDropdownMenu
+import dev.luna5ama.strepitus.ToggleSwitch
 import io.github.composefluent.*
 import io.github.composefluent.component.*
 import io.github.composefluent.icons.*
 import io.github.composefluent.icons.regular.*
-import kotlinx.serialization.Transient
 import java.math.BigDecimal
 
 enum class CompositeMode {
@@ -26,6 +26,7 @@ enum class DimensionType(override val displayName: String) : DisplayNameOverride
 }
 
 data class NoiseLayerParameters(
+    @HiddenFromAutoParameter
     val enabled: Boolean = true,
     val compositeMode: CompositeMode = CompositeMode.Add,
     val dimensionType: DimensionType = DimensionType._2D,
@@ -37,9 +38,7 @@ data class NoiseLayerParameters(
     val persistence: BigDecimal = 0.5.toBigDecimal(),
     @DecimalRangeVal(min = 1.0, max = 4.0, step = 0.03125)
     val lacunarity: BigDecimal = 2.0.toBigDecimal(),
-    val specificParameters: NoiseSpecificParameters = NoiseSpecificParameters.Simplex(),
-    @Transient
-    val expanded: Boolean = true,
+    val specificParameters: NoiseSpecificParameters = NoiseSpecificParameters.Simplex()
 )
 
 enum class DistanceFunction {
@@ -120,9 +119,10 @@ fun NoiseLayerEditor(
         }
     )
     layers.forEachIndexed { i, layer ->
+        var expanded by remember { mutableStateOf(false) }
         Expander(
-            layer.expanded,
-            onExpandedChanged = { layers[i] = layer.copy(expanded = it) },
+            expanded,
+            onExpandedChanged = { expanded = it },
             icon = {
                 Spacer(modifier = Modifier.width(FluentTheme.typography.subtitle.fontSize.value.dp * 3.0f))
                 Icon(
@@ -145,16 +145,42 @@ fun NoiseLayerEditor(
                 )
             },
             trailing = {
-                Button(
-                    onClick = {
-                        deletingIndex = i
-                    },
-                    iconOnly = true
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete Layer"
-                    )
+                    Button(
+                        onClick = {
+                            layers.add(i, layer)
+                        },
+                        iconOnly = true
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CopyAdd,
+                            contentDescription = "Duplicate Layer"
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            deletingIndex = i
+                        },
+                        iconOnly = true
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete Layer"
+                        )
+                    }
+                    Box(modifier = Modifier.padding(horizontal = 4.dp)) {
+                        ToggleSwitch(
+                            checked = layer.enabled,
+                            onCheckStateChange = { newEnabled ->
+                                layers[i] = layer.copy(enabled = newEnabled)
+                            },
+                            textOn = null,
+                            textOff = null
+                        )
+                    }
                 }
             }
         ) {
