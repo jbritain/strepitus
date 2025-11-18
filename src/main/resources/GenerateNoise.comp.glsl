@@ -31,40 +31,36 @@ uniform int uval_perOctaveSeed;
 
 uniform int uval_compositeMode;// 0: none, 1: add, 2: subtract, 3: multiply
 
-vec4 valueNoise2(vec3 p, float freq, float alpha) {
-    vec3 result = ValueNoise_2D_valueGrad(p.xy * freq / 2.0, vec2(freq));
+vec4 valueNoise2(vec3 p, float freq, float alpha, uint seed) {
+    vec3 result = ValueNoise_2D_valueGrad(p.xy * freq / 2.0, vec2(freq), seed);
     return vec4(result.yz, 0.0, result.x);
 }
 
-vec4 valueNoise3(vec3 p, float freq, float alpha) {
-    return ValueNoise_3D_valueGrad(p * freq / 2.0, vec3(freq)).yzwx;
+vec4 valueNoise3(vec3 p, float freq, float alpha, uint seed) {
+    return ValueNoise_3D_valueGrad(p * freq / 2.0, vec3(freq), seed).yzwx;
 }
 
-vec4 perlinNoise2(vec3 p, float freq, float alpha) {
+vec4 perlinNoise2(vec3 p, float freq, float alpha, uint seed) {
     vec3 result = GradientNoise_2D_valueGrad(p.xy * freq / 2.0, vec2(freq));
     return vec4(result.yz, 0.0, result.x);
 }
 
-vec4 perlinNoise3(vec3 p, float freq, float alpha) {
+vec4 perlinNoise3(vec3 p, float freq, float alpha, uint seed) {
     return GradientNoise_3D_valueGrad(p * freq / 2.0, vec3(freq)).yzwx;
 }
 
-vec4 simplexNoise2(vec3 p, float freq, float alpha) {
+vec4 simplexNoise2(vec3 p, float freq, float alpha, uint seed) {
     freq = floor(freq);
     vec2 grad;
     float value = psrdnoise2(p.xy * freq / 2.0, vec2(freq), alpha, grad);
     return vec4(grad, 0.0, value);
 }
 
-vec4 simplexNoise3(vec3 p, float freq, float alpha) {
+vec4 simplexNoise3(vec3 p, float freq, float alpha, uint seed) {
     freq = floor(freq);
     vec3 grad;
     float value = psrdnoise3(p * freq / 2.0, vec3(freq), alpha, grad);
     return vec4(grad, value);
-}
-
-float hash11(uint p) {
-    return hash_uintToFloat(hash_11_q5(p));
 }
 
 void main() {
@@ -82,13 +78,14 @@ void main() {
     for (int i = 0; i < uval_octaves; ++i) {
         vec4 noiseV = vec4(0.0);
         uint seedIndex = uval_perOctaveSeed == 0 ? 0 : i;
+        uint seed = ssbo_seed.gridSeed[seedIndex];
         float alpha = hash_uintToFloat(ssbo_seed.gridSeed[seedIndex]) * PI_2;
         if (uval_noiseType == 0) {
-            noiseV = uval_dimensionType == 0 ? valueNoise2(noisePos, freq, alpha) : valueNoise3(noisePos, freq, alpha);
+            noiseV = uval_dimensionType == 0 ? valueNoise2(noisePos, freq, alpha, seed) : valueNoise3(noisePos, freq, alpha, seed);
         } else if (uval_noiseType == 1) {
-            noiseV = uval_dimensionType == 0 ? perlinNoise2(noisePos, freq, alpha) : perlinNoise3(noisePos, freq, alpha);
+            noiseV = uval_dimensionType == 0 ? perlinNoise2(noisePos, freq, alpha, seed) : perlinNoise3(noisePos, freq, alpha, seed);
         } else if (uval_noiseType == 2) {
-            noiseV = uval_dimensionType == 0 ? simplexNoise2(noisePos, freq, alpha) : simplexNoise3(noisePos, freq, alpha);
+            noiseV = uval_dimensionType == 0 ? simplexNoise2(noisePos, freq, alpha, seed) : simplexNoise3(noisePos, freq, alpha, seed);
         }
 
         if (uval_gradientMode == 0) {
