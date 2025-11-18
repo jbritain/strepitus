@@ -34,7 +34,7 @@ fun <T : Any> ParameterEditor(
     val copyFunParameterOrder = copyFunc.parameters.drop(1).withIndex().associate { it.value.name!! to it.index }
     val properties = clazz.memberProperties
         .filter { it.javaField != null }
-        .filter { it.annotations.none { ann -> ann is HiddenFromAutoParameter } }
+        .filter { it.annotations.none { ann -> ann is HiddenFromAutoParameter || ann is Transient } }
         .sortedBy { copyFunParameterOrder[it.name] ?: Int.MAX_VALUE }
 
     properties.forEach {

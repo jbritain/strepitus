@@ -26,6 +26,8 @@ enum class DimensionType(override val displayName: String) : DisplayNameOverride
 }
 
 data class NoiseLayerParameters(
+    @Transient
+    val visible: Boolean = true,
     @HiddenFromAutoParameter
     val enabled: Boolean = true,
     val compositeMode: CompositeMode = CompositeMode.Add,
@@ -119,10 +121,9 @@ fun NoiseLayerEditor(
         }
     )
     layers.forEachIndexed { i, layer ->
-        var expanded by remember { mutableStateOf(false) }
         Expander(
-            expanded,
-            onExpandedChanged = { expanded = it },
+            layer.visible,
+            onExpandedChanged = { layers[i] = layer.copy(visible = it) },
             icon = {
                 Spacer(modifier = Modifier.width(FluentTheme.typography.subtitle.fontSize.value.dp * 3.0f))
                 Icon(
