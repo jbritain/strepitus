@@ -200,10 +200,10 @@ class NoiseGeneratorRenderer(
             val gradientMode = (it.specificParameters as? NoiseSpecificParameters.HasGradient)?.gradientMode?.ordinal ?: 0
             generateNoiseShader.uniform1i("uval_gradientMode", gradientMode)
 
-            generateNoiseShader.uniform1i("uval_baseFrequency", it.baseFrequency)
-            generateNoiseShader.uniform1i("uval_octaves", it.octaves)
-            generateNoiseShader.uniform1f("uval_lacunarity", it.lacunarity.toFloat())
-            generateNoiseShader.uniform1f("uval_persistence", it.persistence.toFloat())
+            generateNoiseShader.uniform1i("uval_baseFrequency", it.fbmParameters.baseFrequency)
+            generateNoiseShader.uniform1i("uval_octaves", it.fbmParameters.octaves)
+            generateNoiseShader.uniform1f("uval_lacunarity", it.fbmParameters.lacunarity.toFloat())
+            generateNoiseShader.uniform1f("uval_persistence", it.fbmParameters.persistence.toFloat())
             generateNoiseShader.uniform1i("uval_compositeMode", it.compositeMode.ordinal)
 
             glDispatchCompute(mainParameters.width / 16, mainParameters.height / 16, mainParameters.slices)

@@ -65,6 +65,16 @@ private fun ParameterField(
 ) {
     val propName = prop.displayName ?: camelCaseToWords(prop.name)
     when (val propType = prop.returnType.classifier!! as KClass<Any>) {
+
+        String::class -> {
+            CardExpanderItem(heading = { Text(propName) }) {
+                StringInput(
+                    value = propValue as String,
+                    onValueChange = newParameterFunc
+                )
+            }
+        }
+
         Int::class -> {
             val intRangeAnn = prop.annotations.filterIsInstance<IntRangeVal>().firstOrNull()
             if (intRangeAnn != null) {
@@ -112,11 +122,18 @@ private fun ParameterField(
 
         else -> when {
             propType.isData || propValue::class.isData -> {
-                ParameterEditor(
-                    clazz = propValue::class as KClass<Any>,
-                    parameters = propValue,
-                    onChange = newParameterFunc
-                )
+                var expanded by remember { mutableStateOf(false) }
+                Expander(
+                    expanded = expanded,
+                    onExpandedChanged = { expanded = it },
+                    heading = { Text(propName) }
+                ) {
+                    ParameterEditor(
+                        clazz = propValue::class as KClass<Any>,
+                        parameters = propValue,
+                        onChange = newParameterFunc
+                    )
+                }
             }
 
             Enum::class.isSuperclassOf(propType) -> {

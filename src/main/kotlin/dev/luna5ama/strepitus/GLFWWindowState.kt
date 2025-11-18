@@ -11,12 +11,14 @@ import androidx.compose.ui.unit.*
 import androidx.compose.ui.util.*
 import dev.luna5ama.kmogus.MemoryStack
 import dev.luna5ama.strepitus.gl.glfwToAwtKeyCode
+import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap
 import org.lwjgl.glfw.GLFW.*
 import java.awt.Component
+import java.awt.Cursor
 import java.awt.Toolkit
-import java.awt.event.InputEvent
 import java.awt.event.KeyEvent.*
 import java.awt.event.MouseWheelEvent
+import kotlin.properties.Delegates
 import java.awt.event.KeyEvent as AwtKeyEvent
 
 @OptIn(InternalComposeUiApi::class)
@@ -26,6 +28,7 @@ class GLFWWindowState() {
     val windowHeight get() = windowSize.height
 
     private lateinit var scene: ComposeScene
+    private var windowHandle by Delegates.notNull<Long>()
 
     val windowInfo = WindowInfoImpl()
     val platformContext = GLFWPlatformContext()
@@ -34,6 +37,7 @@ class GLFWWindowState() {
 
     fun init(windowHandle: Long, composeScene: ComposeScene, renderer: AbstractRenderer) {
         this.scene = composeScene
+        this.windowHandle = windowHandle
 
         MemoryStack {
             val int2 = malloc(2L * 4L)
@@ -165,7 +169,7 @@ class GLFWWindowState() {
                 val time = System.nanoTime() / 1_000_000
                 scene.sendKeyEvent(
                     makeKeyEvent(
-                        AwtKeyEvent.KEY_TYPED, time, getAwtMods(windowHandle), 0, char,
+                        KEY_TYPED, time, getAwtMods(windowHandle), 0, char,
                         KEY_LOCATION_UNKNOWN
                     )
                 )
@@ -282,9 +286,9 @@ class GLFWWindowState() {
                 isAltGraphPressed = isAltGraphDown,
                 isSymPressed = false, // no sym in awtEvent?
                 isFunctionPressed = false, // no Fn in awtEvent?
-                isCapsLockOn = getLockingKeyStateSafe(AwtKeyEvent.VK_CAPS_LOCK),
-                isScrollLockOn = getLockingKeyStateSafe(AwtKeyEvent.VK_SCROLL_LOCK),
-                isNumLockOn = getLockingKeyStateSafe(AwtKeyEvent.VK_NUM_LOCK),
+                isCapsLockOn = getLockingKeyStateSafe(VK_CAPS_LOCK),
+                isScrollLockOn = getLockingKeyStateSafe(VK_SCROLL_LOCK),
+                isNumLockOn = getLockingKeyStateSafe(VK_NUM_LOCK),
             )
         }
 
@@ -326,11 +330,11 @@ class GLFWWindowState() {
     private fun getAwtMods(windowHandle: Long): Int {
         var awtMods = 0
         if (glfwGetMouseButton(windowHandle, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS)
-            awtMods = awtMods or InputEvent.BUTTON1_DOWN_MASK
+            awtMods = awtMods or BUTTON1_DOWN_MASK
         if (glfwGetMouseButton(windowHandle, GLFW_MOUSE_BUTTON_2) == GLFW_PRESS)
-            awtMods = awtMods or InputEvent.BUTTON2_DOWN_MASK
+            awtMods = awtMods or BUTTON2_DOWN_MASK
         if (glfwGetMouseButton(windowHandle, GLFW_MOUSE_BUTTON_3) == GLFW_PRESS)
-            awtMods = awtMods or InputEvent.BUTTON3_DOWN_MASK
+            awtMods = awtMods or BUTTON3_DOWN_MASK
         if (glfwGetMouseButton(windowHandle, GLFW_MOUSE_BUTTON_4) == GLFW_PRESS)
             awtMods = awtMods or (1 shl 14)
         if (glfwGetMouseButton(windowHandle, GLFW_MOUSE_BUTTON_5) == GLFW_PRESS)
@@ -340,19 +344,19 @@ class GLFWWindowState() {
                 GLFW_KEY_RIGHT_CONTROL
             ) == GLFW_PRESS
         )
-            awtMods = awtMods or InputEvent.CTRL_DOWN_MASK
+            awtMods = awtMods or CTRL_DOWN_MASK
         if (glfwGetKey(windowHandle, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || glfwGetKey(
                 windowHandle,
                 GLFW_KEY_RIGHT_SHIFT
             ) == GLFW_PRESS
         )
-            awtMods = awtMods or InputEvent.SHIFT_DOWN_MASK
+            awtMods = awtMods or SHIFT_DOWN_MASK
         if (glfwGetKey(windowHandle, GLFW_KEY_LEFT_ALT) == GLFW_PRESS || glfwGetKey(
                 windowHandle,
                 GLFW_KEY_RIGHT_ALT
             ) == GLFW_PRESS
         )
-            awtMods = awtMods or InputEvent.ALT_DOWN_MASK
+            awtMods = awtMods or ALT_DOWN_MASK
         return awtMods
     }
 
@@ -372,5 +376,56 @@ class GLFWWindowState() {
     inner class GLFWPlatformContext : PlatformContext by PlatformContext.Empty {
         override val windowInfo: WindowInfo
             get() = this@GLFWWindowState.windowInfo
+
+        private val awtCursorClass = Class.forName("androidx.compose.ui.input.pointer.AwtCursor")
+        private val cursorField = awtCursorClass.getDeclaredField("cursor").apply { isAccessible = true }
+
+        private val glfwCursors: Int2LongOpenHashMap
+
+        init {
+            val arrow = glfwCreateStandardCursor(GLFW_ARROW_CURSOR)
+            val ibeam = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR)
+            val crosshair = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR)
+            val pointingHand = glfwCreateStandardCursor(GLFW_POINTING_HAND_CURSOR)
+            val resizeEW = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR)
+            val resizeNS = glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR)
+            val resizeNWSE = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR)
+            val resizeNESW = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR)
+            val resizeAll = glfwCreateStandardCursor(GLFW_RESIZE_ALL_CURSOR)
+            val notAllowed = glfwCreateStandardCursor(GLFW_NOT_ALLOWED_CURSOR)
+
+            glfwCursors = Int2LongOpenHashMap(
+                mapOf(
+                    Cursor.DEFAULT_CURSOR to arrow,
+                    Cursor.CROSSHAIR_CURSOR to crosshair,
+                    Cursor.TEXT_CURSOR to ibeam,
+                    Cursor.WAIT_CURSOR to notAllowed,
+                    Cursor.SW_RESIZE_CURSOR to resizeNESW,
+                    Cursor.SE_RESIZE_CURSOR to resizeNWSE,
+                    Cursor.NW_RESIZE_CURSOR to resizeNWSE,
+                    Cursor.NE_RESIZE_CURSOR to resizeNESW,
+                    Cursor.N_RESIZE_CURSOR to resizeNS,
+                    Cursor.S_RESIZE_CURSOR to resizeNS,
+                    Cursor.W_RESIZE_CURSOR to resizeEW,
+                    Cursor.E_RESIZE_CURSOR to resizeEW,
+                    Cursor.HAND_CURSOR to pointingHand,
+                    Cursor.MOVE_CURSOR to resizeAll
+                )
+            ).apply {
+                defaultReturnValue(arrow)
+            }
+        }
+
+        override fun setPointerIcon(pointerIcon: PointerIcon) {
+            var awtCursor = Cursor.DEFAULT_CURSOR
+            if (pointerIcon.javaClass.isAssignableFrom(awtCursorClass)) {
+                val cursorObj = cursorField.get(pointerIcon)
+                if (cursorObj is Cursor) {
+                    awtCursor = cursorObj.type
+                }
+            }
+            val glfwCursor = glfwCursors.get(awtCursor)
+            glfwSetCursor(windowHandle, glfwCursor)
+        }
     }
 }

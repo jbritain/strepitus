@@ -266,3 +266,19 @@ fun <T : Enum<*>> EnumDropdownMenu(
         }
     }
 }
+
+@Composable
+fun StringInput(
+    value: String,
+    onValueChange: (String) -> Unit,
+    enabled: Boolean = true,
+) {
+    TextField(
+        value = value,
+        onValueChange = { str ->
+            onValueChange(str)
+        },
+        enabled = enabled,
+        singleLine = true
+    )
+}

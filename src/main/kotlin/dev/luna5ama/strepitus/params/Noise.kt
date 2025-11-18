@@ -47,8 +47,9 @@ data class NoiseLayerParameters(
     val compositeMode: CompositeMode = CompositeMode.Add,
     val dimensionType: DimensionType = DimensionType._2D,
     val baseSeed: String,
-
-
+    @DisplayName("FBM Parameters")
+    val fbmParameters: FBMParameters = FBMParameters(),
+    @DisplayName("Noise Type Specific Parameters")
     val specificParameters: NoiseSpecificParameters = NoiseSpecificParameters.Simplex()
 ) {
     companion object {

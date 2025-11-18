@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.vector.*
+import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.layout.*
 import androidx.compose.ui.unit.*
 import dev.luna5ama.strepitus.params.*
@@ -19,6 +20,7 @@ import io.github.composefluent.component.*
 import io.github.composefluent.component.rememberScrollbarAdapter
 import io.github.composefluent.icons.*
 import io.github.composefluent.icons.regular.*
+import java.awt.Cursor
 import java.math.MathContext
 import java.math.RoundingMode
 
@@ -32,9 +34,13 @@ fun App(renderer: NoiseGeneratorRenderer) {
     var viewerParameters by remember { mutableStateOf(ViewerParameters()) }
     var systemParameters by remember { mutableStateOf(SystemParameters()) }
 
-    val noiseLayers = remember { mutableStateListOf(NoiseLayerParameters(
-        baseSeed = NoiseLayerParameters.generateBaseSeed(0)
-    )) }
+    val noiseLayers = remember {
+        mutableStateListOf(
+            NoiseLayerParameters(
+                baseSeed = NoiseLayerParameters.generateBaseSeed(0)
+            )
+        )
+    }
 
     val darkMode = when (systemParameters.darkMode) {
         DarkModeOption.Auto -> isSystemInDarkTheme()
@@ -157,6 +163,9 @@ fun App(renderer: NoiseGeneratorRenderer) {
                             centerY = (viewerParameters.centerY - it.y.toBigDecimal()).round(roundingMode)
                         )
                     }
+                    .pointerHoverIcon(
+                        icon = PointerIcon(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR))
+                    )
             ) {}
         }
     }
