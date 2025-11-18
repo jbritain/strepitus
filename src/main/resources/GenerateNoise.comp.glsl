@@ -41,12 +41,12 @@ vec4 valueNoise3(vec3 p, float freq, uint seed) {
 }
 
 vec4 perlinNoise2(vec3 p, float freq, uint seed) {
-    vec3 result = GradientNoise_2D_valueGrad(p.xy * freq / 2.0, vec2(freq));
+    vec3 result = GradientNoise_2D_valueGrad(p.xy * freq / 2.0, vec2(freq), seed);
     return vec4(result.yz, 0.0, result.x);
 }
 
 vec4 perlinNoise3(vec3 p, float freq, uint seed) {
-    return GradientNoise_3D_valueGrad(p * freq / 2.0, vec3(freq)).yzwx;
+    return GradientNoise_3D_valueGrad(p * freq / 2.0, vec3(freq), seed).yzwx;
 }
 
 vec4 simplexNoise2(vec3 p, float freq, uint seed) {

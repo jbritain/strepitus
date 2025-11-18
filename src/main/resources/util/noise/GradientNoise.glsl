@@ -25,21 +25,21 @@
 #include "/util/Rand.glsl"
 
 // -------------------------------------------------- Value Noise 2D --------------------------------------------------
-vec2 _GradientNoise_2D_hash(uvec2 x) {
-    return hash_uintToFloat(hash_22_q3(x)) * 2.0 - 1.0;
+vec2 _GradientNoise_2D_hash(uvec2 x, uint seed) {
+    return hash_uintToFloat(hash_33_q3(uvec3(x, seed)).xy) * 2.0 - 1.0;
 }
 
 // [QUI17a]
-vec3 GradientNoise_2D_valueGrad(vec2 x, vec2 freq) {
+vec3 GradientNoise_2D_valueGrad(vec2 x, vec2 freq, uint seed) {
     vec2 w = fract(x);
 
     vec2 u = _NOISE_INTERPO(w);
     vec2 du = _NOISE_INTERPO_GRAD(w);
 
-    vec2 ga = _GradientNoise_2D_hash(hashCoordWarp(x + vec2(0.0, 0.0), freq));
-    vec2 gb = _GradientNoise_2D_hash(hashCoordWarp(x + vec2(1.0, 0.0), freq));
-    vec2 gc = _GradientNoise_2D_hash(hashCoordWarp(x + vec2(0.0, 1.0), freq));
-    vec2 gd = _GradientNoise_2D_hash(hashCoordWarp(x + vec2(1.0, 1.0), freq));
+    vec2 ga = _GradientNoise_2D_hash(hashCoordWarp(x + vec2(0.0, 0.0), freq), seed);
+    vec2 gb = _GradientNoise_2D_hash(hashCoordWarp(x + vec2(1.0, 0.0), freq), seed);
+    vec2 gc = _GradientNoise_2D_hash(hashCoordWarp(x + vec2(0.0, 1.0), freq), seed);
+    vec2 gd = _GradientNoise_2D_hash(hashCoordWarp(x + vec2(1.0, 1.0), freq), seed);
 
     float va = dot(ga, w - vec2(0.0, 0.0));
     float vb = dot(gb, w - vec2(1.0, 0.0));
@@ -58,25 +58,25 @@ vec3 GradientNoise_2D_valueGrad(vec2 x, vec2 freq) {
 }
 
 // -------------------------------------------------- Value Noise 3D --------------------------------------------------
-vec3 _GradientNoise_3D_hash(uvec3 x) {
-    return hash_uintToFloat(hash_33_q3(x)) * 2.0 - 1.0;
+vec3 _GradientNoise_3D_hash(uvec3 x, uint seed) {
+    return hash_uintToFloat(hash_44_q3(uvec4(x, seed)).xyz) * 2.0 - 1.0;
 }
 
 // [QUI17b]
-vec4 GradientNoise_3D_valueGrad(vec3 x, vec3 freq) {
+vec4 GradientNoise_3D_valueGrad(vec3 x, vec3 freq, uint seed) {
     vec3 w = fract(x);
 
     vec3 u = _NOISE_INTERPO(w);
     vec3 du = _NOISE_INTERPO_GRAD(w);
 
-    vec3 ga = _GradientNoise_3D_hash(hashCoordWarp(x + vec3(0.0, 0.0, 0.0), freq));
-    vec3 gb = _GradientNoise_3D_hash(hashCoordWarp(x + vec3(1.0, 0.0, 0.0), freq));
-    vec3 gc = _GradientNoise_3D_hash(hashCoordWarp(x + vec3(0.0, 1.0, 0.0), freq));
-    vec3 gd = _GradientNoise_3D_hash(hashCoordWarp(x + vec3(1.0, 1.0, 0.0), freq));
-    vec3 ge = _GradientNoise_3D_hash(hashCoordWarp(x + vec3(0.0, 0.0, 1.0), freq));
-    vec3 gf = _GradientNoise_3D_hash(hashCoordWarp(x + vec3(1.0, 0.0, 1.0), freq));
-    vec3 gg = _GradientNoise_3D_hash(hashCoordWarp(x + vec3(0.0, 1.0, 1.0), freq));
-    vec3 gh = _GradientNoise_3D_hash(hashCoordWarp(x + vec3(1.0, 1.0, 1.0), freq));
+    vec3 ga = _GradientNoise_3D_hash(hashCoordWarp(x + vec3(0.0, 0.0, 0.0), freq), seed);
+    vec3 gb = _GradientNoise_3D_hash(hashCoordWarp(x + vec3(1.0, 0.0, 0.0), freq), seed);
+    vec3 gc = _GradientNoise_3D_hash(hashCoordWarp(x + vec3(0.0, 1.0, 0.0), freq), seed);
+    vec3 gd = _GradientNoise_3D_hash(hashCoordWarp(x + vec3(1.0, 1.0, 0.0), freq), seed);
+    vec3 ge = _GradientNoise_3D_hash(hashCoordWarp(x + vec3(0.0, 0.0, 1.0), freq), seed);
+    vec3 gf = _GradientNoise_3D_hash(hashCoordWarp(x + vec3(1.0, 0.0, 1.0), freq), seed);
+    vec3 gg = _GradientNoise_3D_hash(hashCoordWarp(x + vec3(0.0, 1.0, 1.0), freq), seed);
+    vec3 gh = _GradientNoise_3D_hash(hashCoordWarp(x + vec3(1.0, 1.0, 1.0), freq), seed);
 
     float va = dot(ga, w - vec3(0.0, 0.0, 0.0));
     float vb = dot(gb, w - vec3(1.0, 0.0, 0.0));
