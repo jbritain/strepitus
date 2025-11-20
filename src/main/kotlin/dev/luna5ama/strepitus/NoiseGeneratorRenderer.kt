@@ -327,10 +327,11 @@ class NoiseGeneratorRenderer(
                 val channelCount = outputSpec.channels
                 val colorSpace = when (channelCount) {
                     1 -> ColorSpace.getInstance(ColorSpace.CS_GRAY)
-                    else -> ColorSpace.getInstance(ColorSpace.CS_sRGB)
+                    else -> ColorSpace.getInstance(ColorSpace.CS_LINEAR_RGB)
                 }
 
                 val pixelTypeBitSize = outputSpec.pixelTypeBitSize
+                val pixelTypeBytes = pixelTypeBitSize / 8
                 val bits = IntArray(channelCount) { pixelTypeBitSize }
                 val transferType = when (outputSpec.pixelType) {
                     GL_UNSIGNED_BYTE -> DataBuffer.TYPE_BYTE
@@ -363,39 +364,39 @@ class NoiseGeneratorRenderer(
 
                 if (transferType == DataBuffer.TYPE_FLOAT) {
                     val tempArray = FloatArray(channelCount)
-                    for (y in 0..<mainParameters.height) {
+                    for (y in (mainParameters.height - 1) downTo 0) {
                         val xPtr = mapped.ptr + (y * mainParameters.width * outputSpec.pixelSize)
                         for (x in 0..<mainParameters.width) {
                             val ptr = xPtr + (x * outputSpec.pixelSize)
                             repeat(channelCount) {
-                                tempArray[it] = ptr.getFloat((it * pixelTypeBitSize).toLong())
+                                tempArray[it] = ptr.getFloat((it * pixelTypeBytes).toLong())
                             }
                             raster.setPixel(x, y, tempArray)
                         }
                     }
                 } else {
                     val tempArray = IntArray(channelCount)
-                    for (y in 0..<mainParameters.height) {
+                    for (y in (mainParameters.height - 1) downTo 0) {
                         val xPtr = mapped.ptr + (y * mainParameters.width * outputSpec.pixelSize)
                         for (x in 0..<mainParameters.width) {
                             val ptr = xPtr + (x * outputSpec.pixelSize)
                             when (transferType) {
                                 DataBuffer.TYPE_BYTE -> {
                                     repeat(channelCount) {
-                                        tempArray[it] = ptr.getByte((it * pixelTypeBitSize).toLong()).toInt() and 0xFF
+                                        tempArray[it] = ptr.getByte((it * pixelTypeBytes).toLong()).toInt() and 0xFF
                                     }
                                 }
 
                                 DataBuffer.TYPE_USHORT, DataBuffer.TYPE_SHORT -> {
                                     repeat(channelCount) {
                                         tempArray[it] =
-                                            ptr.getShort((it * pixelTypeBitSize).toLong()).toInt() and 0xFFFF
+                                            ptr.getShort((it * pixelTypeBytes).toLong()).toInt() and 0xFFFF
                                     }
                                 }
 
                                 DataBuffer.TYPE_INT -> {
                                     repeat(channelCount) {
-                                        tempArray[it] = ptr.getInt((it * pixelTypeBitSize).toLong())
+                                        tempArray[it] = ptr.getInt((it * pixelTypeBytes).toLong())
                                     }
                                 }
 

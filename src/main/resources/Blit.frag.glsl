@@ -45,5 +45,7 @@ void main() {
         fragColor.rgb = noiseV.rrr;
     }
 
+    //    fragColor.rgb = pow(fragColor.rgb, vec3(1.0 / 2.2));
+
     fragColor.a = 1.0;
 }

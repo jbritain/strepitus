@@ -10,7 +10,6 @@ import dev.luna5ama.glwrapper.base.*
 import dev.luna5ama.strepitus.gl.GlfwCoroutineDispatcher
 import dev.luna5ama.strepitus.gl.subscribeToGLFWEvents
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
 import org.jetbrains.skia.*
 import org.jetbrains.skiko.FrameDispatcher
 import org.lwjgl.glfw.GLFW.*
@@ -18,6 +17,7 @@ import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL43C.glDebugMessageCallback
 import org.lwjgl.opengl.GLDebugMessageCallback
 import org.lwjgl.system.MemoryUtil
+import org.lwjgl.util.nfd.NativeFileDialog
 
 @OptIn(InternalComposeUiApi::class)
 fun main() {
@@ -107,22 +107,17 @@ fun main() {
         ColorSpace.sRGB,
         SurfaceProps()
     )!!
-    val glfwDispatcher = GlfwCoroutineDispatcher() // a custom coroutine dispatcher, in which Compose will run
+    val glfwDispatcher =
+        GlfwCoroutineDispatcher(windowHandle) // a custom coroutine dispatcher, in which Compose will run
     val scope = CoroutineScope(glfwDispatcher)
 
-    fun close() {
-        scope.cancel()
-        glfwDispatcher.stop()
-    }
-
-    glfwSetWindowCloseCallback(windowHandle) {
-    }
+    NativeFileDialog.NFD_Init()
 
     var renderFunc = {}
 
     val frameDispatcher = FrameDispatcher(glfwDispatcher) { renderFunc() }
     val state = GLFWWindowState()
-    val appState = AppState(::close)
+    val appState = AppState(windowHandle, scope)
     appState.load()
 
     Runtime.getRuntime().addShutdownHook(Thread {
@@ -191,6 +186,7 @@ fun main() {
 
     glfwDispatcher.runLoop()
 
+    NativeFileDialog.NFD_Quit()
     applyObserverHandle.dispose()
     composeScene.close()
     renderer.dispose()

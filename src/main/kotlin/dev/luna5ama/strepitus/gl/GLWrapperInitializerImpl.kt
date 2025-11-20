@@ -8,7 +8,7 @@ class GLWrapperInitializerImpl : GLWrapperInitializer by GLWrapperInitializerLWJ
     override val priority: Int = 999
 
     override fun createPathResolver(): ShaderPathResolver {
-        return if (System.getProperty("strepitus.devenv").toBoolean()) {
+        return if (System.getenv("strepitus.devenv").toBoolean()) {
             println("Using development environment ShaderPathResolver")
             PathResolverImpl()
         } else {

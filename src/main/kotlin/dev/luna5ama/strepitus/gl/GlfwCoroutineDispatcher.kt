@@ -2,10 +2,11 @@ package dev.luna5ama.strepitus.gl
 
 import kotlinx.coroutines.CoroutineDispatcher
 import org.lwjgl.glfw.GLFW.glfwPollEvents
+import org.lwjgl.glfw.GLFW.glfwWindowShouldClose
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.coroutines.CoroutineContext
 
-class GlfwCoroutineDispatcher : CoroutineDispatcher() {
+class GlfwCoroutineDispatcher(private val windowHandle: Long) : CoroutineDispatcher() {
     private val tasks = ConcurrentLinkedQueue<Runnable>()
     private val tasksCopy = mutableListOf<Runnable>()
     private var isStopped = false
@@ -24,6 +25,7 @@ class GlfwCoroutineDispatcher : CoroutineDispatcher() {
             }
             tasksCopy.clear()
             glfwPollEvents()
+            isStopped = isStopped || glfwWindowShouldClose(windowHandle)
         }
     }
 

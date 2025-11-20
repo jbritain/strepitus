@@ -44,11 +44,12 @@ dependencies {
     implementation("org.lwjgl", "lwjgl-glfw")
     implementation("org.lwjgl", "lwjgl-opengl")
     implementation("org.lwjgl", "lwjgl-stb")
-    implementation("org.lwjgl", "lwjgl-jawt")
+    implementation("org.lwjgl", "lwjgl-nfd")
     runtimeOnly("org.lwjgl", "lwjgl", classifier = "natives-windows")
     runtimeOnly("org.lwjgl", "lwjgl-glfw", classifier = "natives-windows")
     runtimeOnly("org.lwjgl", "lwjgl-opengl", classifier = "natives-windows")
     runtimeOnly("org.lwjgl", "lwjgl-stb", classifier = "natives-windows")
+    runtimeOnly("org.lwjgl", "lwjgl-nfd", classifier = "natives-windows")
 
     implementation(libs.kotlinxSerializationCore)
     implementation(libs.kotlinxSerializationJson)

@@ -19,10 +19,17 @@ import io.github.composefluent.component.*
 import io.github.composefluent.component.rememberScrollbarAdapter
 import io.github.composefluent.icons.*
 import io.github.composefluent.icons.regular.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
+import org.lwjgl.glfw.GLFW.glfwSetWindowShouldClose
+import org.lwjgl.system.MemoryStack
+import org.lwjgl.util.nfd.NFDFilterItem
+import org.lwjgl.util.nfd.NFDSaveDialogArgs
+import org.lwjgl.util.nfd.NativeFileDialog
 import java.math.MathContext
 import java.math.RoundingMode
 import kotlin.io.path.Path
@@ -32,7 +39,10 @@ import kotlin.io.path.writeText
 
 val roundingMode = MathContext(4, RoundingMode.FLOOR)
 
-class AppState(private val exitFunc: () -> Unit) {
+class AppState(
+    private val windowHandle: Long,
+    val scope: CoroutineScope,
+) {
     var mainParameters by mutableStateOf(MainParameters())
     val noiseLayers = mutableStateListOf(
         NoiseLayerParameters(
@@ -45,7 +55,7 @@ class AppState(private val exitFunc: () -> Unit) {
     var systemParameters by mutableStateOf(SystemParameters())
 
     fun exitApp() {
-        exitFunc()
+        glfwSetWindowShouldClose(windowHandle, true)
     }
 
     fun load() {
@@ -123,6 +133,7 @@ fun MenuFlyoutScope.MenuFlyoutButton(
     icon: ImageVector? = null,
     text: String,
     trailingText: String? = null,
+    enabled: Boolean = true,
 ) {
     MenuFlyoutItem(
         onClick = onClick,
@@ -133,7 +144,8 @@ fun MenuFlyoutScope.MenuFlyoutButton(
                 Spacer(Modifier.width(16.dp))
                 Text(it, style = FluentTheme.typography.caption)
             }
-        }
+        },
+        enabled = enabled,
     )
 }
 
@@ -149,6 +161,56 @@ fun App(renderer: NoiseGeneratorRenderer, appState: AppState) {
         DarkModeOption.Auto -> isSystemInDarkTheme()
         DarkModeOption.Light -> false
         DarkModeOption.Dark -> true
+    }
+
+    var errorPrompt by remember { mutableStateOf<String?>(null) }
+    errorPrompt?.let { message ->
+        ContentDialog(
+            title = "Error",
+            visible = true,
+            primaryButtonText = "OK",
+            onButtonClick = {
+                errorPrompt = null
+            },
+            content = { Text(message) }
+        )
+    }
+
+    var exportingImage by remember { mutableStateOf(false) }
+    var exportingFormat by remember { mutableStateOf(OutputFileFormat.PNG) }
+
+    if (exportingImage) {
+        exportingImage = false
+        val outputFormat = exportingFormat
+        MemoryStack.stackPush().use {
+            val filters = NFDFilterItem.calloc(1, it)
+            filters[0]
+                .name(it.UTF8("${outputFormat.fullName} File"))
+                .spec(it.UTF8(outputFormat.extensions.joinToString(",")))
+            val args = NFDSaveDialogArgs.calloc(it)
+                .filterList(filters)
+            val savePath = it.mallocPointer(1)
+            when (NativeFileDialog.NFD_SaveDialog_With(savePath, args)) {
+                NativeFileDialog.NFD_OKAY -> {
+                    val path = Path(savePath.getStringUTF8(0))
+                    appState.scope.launch {
+                        runCatching {
+                            renderer.saveImage(path, outputFormat)
+                        }.onFailure { ex ->
+                            errorPrompt = "Failed to export image:\n${ex.message}"
+                        }
+                    }
+                }
+
+                NativeFileDialog.NFD_CANCEL -> {
+                    // User cancelled
+                }
+
+                else -> {
+                    errorPrompt = NativeFileDialog.NFD_GetError().toString()
+                }
+            }
+        }
     }
 
     FluentTheme(
@@ -189,10 +251,28 @@ fun App(renderer: NoiseGeneratorRenderer, appState: AppState) {
                             text = { Text("Export Texture") },
                             icon = { Icon(imageVector = Icons.Default.SaveArrowRight, contentDescription = null) },
                             items = {
+                                fun isFormatEnabled(format: OutputFileFormat): Boolean {
+                                    if ((mainParameters.slices > 1) && format.only2D) {
+                                        return false
+                                    }
+                                    val outputSpec = outputParameters.format.outputSpec
+                                    if (!format.supportedChannelCount.contains(outputSpec.channels)) {
+                                        return false
+                                    }
+                                    if (!format.supportedPixelType.contains(outputSpec.pixelType)) {
+                                        return false
+                                    }
+                                    return true
+                                }
+
                                 OutputFileFormat.entries.forEach { format ->
                                     MenuFlyoutButton(
-                                        onClick = { /* TODO */ },
-                                        text = format.name
+                                        onClick = {
+                                            exportingFormat = format
+                                            exportingImage = true
+                                        },
+                                        text = format.name,
+                                        enabled = isFormatEnabled(format)
                                     )
                                 }
                             }

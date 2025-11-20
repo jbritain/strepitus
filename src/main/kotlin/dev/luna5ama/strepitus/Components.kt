@@ -4,10 +4,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
+import androidx.compose.ui.awt.*
 import androidx.compose.ui.focus.*
 import androidx.compose.ui.text.input.*
 import dev.luna5ama.strepitus.params.DisplayNameOverride
 import io.github.composefluent.component.*
+import java.awt.FileDialog
+import java.awt.Frame
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.max
@@ -15,6 +18,24 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
+
+@Composable
+fun FileDialog(
+    title: String,
+    mode: Int,
+    block: FileDialog.() -> Unit = {}
+) = AwtWindow(
+    create = {
+        val owner = Frame()
+        owner.isUndecorated = true
+        owner.setSize(0, 0)
+        owner.isVisible = false
+        FileDialog(owner, title, mode).apply(block)
+    },
+    dispose = {
+        it.dispose()
+    }
+)
 
 @Composable
 fun ToggleSwitch(

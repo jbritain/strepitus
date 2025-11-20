@@ -10,18 +10,23 @@ import kotlinx.serialization.UseSerializers
 import java.math.BigDecimal
 
 enum class OutputFileFormat(
-    val extension: String,
+    val fullName: String,
+    val extensions: List<String>,
     val only2D: Boolean = false,
     val supportedChannelCount: Set<Int>,
     val supportedPixelType: Set<Int>
 ) {
     PNG(
-        "png", true,
+        "PNG",
+        listOf("png"),
+        true,
         setOf(1, 3, 4),
         setOf(GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT, GL_SHORT)
     ),
     Binary(
-        "bin", false,
+        "Binary",
+        listOf("bin"),
+        false,
         setOf(1, 2, 3, 4),
         setOf(
             GL_UNSIGNED_BYTE, GL_BYTE,
@@ -70,6 +75,10 @@ enum class Format(val gpuFormat: GPUFormat, val outputSpec: OutputSpec) {
     R8G8_UNORM(
         GPUFormat.R8G8B8A8_UN,
         OutputSpec(2, GL_UNSIGNED_BYTE, 2L)
+    ),
+    R8G8B8_UNORM(
+        GPUFormat.R8G8B8A8_UN,
+        OutputSpec(3, GL_UNSIGNED_BYTE, 3L)
     ),
     R8G8B8A8_UNORM(
         GPUFormat.R8G8B8A8_UN,
