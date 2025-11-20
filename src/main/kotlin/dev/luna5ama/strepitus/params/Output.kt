@@ -1,4 +1,5 @@
 @file:UseSerializers(BigDecimalSerializer::class)
+
 package dev.luna5ama.strepitus.params
 
 import dev.luna5ama.glwrapper.base.*
@@ -7,6 +8,29 @@ import dev.luna5ama.strepitus.BigDecimalSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
 import java.math.BigDecimal
+
+enum class OutputFileFormat(
+    val extension: String,
+    val only2D: Boolean = false,
+    val supportedChannelCount: Set<Int>,
+    val supportedPixelType: Set<Int>
+) {
+    PNG(
+        "png", true,
+        setOf(1, 3, 4),
+        setOf(GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT, GL_SHORT)
+    ),
+    Binary(
+        "bin", false,
+        setOf(1, 2, 3, 4),
+        setOf(
+            GL_UNSIGNED_BYTE, GL_BYTE,
+            GL_UNSIGNED_SHORT, GL_SHORT,
+            GL_HALF_FLOAT,
+            GL_UNSIGNED_INT_2_10_10_10_REV
+        )
+    )
+}
 
 enum class GPUFormat(val value: ImageFormat.Sized, val glslFormat: String) {
     R8G8B8A8_UN(ImageFormat.R8G8B8A8_UN, "rgba8"),
@@ -26,6 +50,15 @@ data class OutputSpec(
             3 -> GL_RGB
             4 -> GL_RGBA
             else -> throw IllegalArgumentException("Invalid number of channels: $channels")
+        }
+
+    val pixelTypeBitSize
+        get() = when (pixelType) {
+            GL_UNSIGNED_BYTE, GL_BYTE -> 8
+            GL_UNSIGNED_SHORT, GL_SHORT, GL_HALF_FLOAT -> 16
+            GL_UNSIGNED_INT_2_10_10_10_REV -> 32
+            GL_UNSIGNED_INT, GL_INT, GL_FLOAT -> 32
+            else -> throw IllegalArgumentException("Invalid pixel type: $pixelType")
         }
 }
 

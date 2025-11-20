@@ -33,6 +33,7 @@ enum class CompositeMode {
     Multiply
 }
 
+@Suppress("EnumEntryName")
 enum class DimensionType(override val displayName: String) : DisplayNameOverride {
     @SerialName("2D")
     _2D("2D"),
@@ -140,7 +141,7 @@ enum class DistanceFunction {
 @Serializable
 enum class NoiseType(
     val defaultParameter: NoiseSpecificParameters,
-    val copyFunc: KFunction<NoiseSpecificParameters>,
+    copyFunc: KFunction<NoiseSpecificParameters>,
     val constructor: KFunction<NoiseSpecificParameters>
 ) {
     Value(NoiseSpecificParameters.Value(), NoiseSpecificParameters.Value::copy, NoiseSpecificParameters::Value),
@@ -242,7 +243,7 @@ fun NoiseLayerEditor(
     ContentDialog(
         title = "Delete Layer",
         visible = deletingIndex in layers.indices,
-        size = DialogSize.Companion.Standard,
+        size = DialogSize.Standard,
         primaryButtonText = "Delete",
         onButtonClick = {
             if (it == ContentDialogButton.Primary && deletingIndex in layers.indices) {
@@ -321,7 +322,7 @@ fun NoiseLayerEditor(
                 }
             }
         ) {
-            ParameterEditor(layer, { layers[i] = it })
+            ParameterEditor(layer) { layers[i] = it }
         }
         Spacer(modifier = Modifier.height(16.dp))
     }
