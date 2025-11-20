@@ -21,7 +21,7 @@ import org.lwjgl.system.MemoryUtil
 
 @OptIn(InternalComposeUiApi::class)
 fun main() {
-    System.getProperty("strepitus.renderdoc")?.let {
+    System.getenv("strepitus.renderdoc")?.let {
         println("Loading RenderDoc library: $it")
         System.load(it)
     }
@@ -45,7 +45,7 @@ fun main() {
 
     GL.createCapabilities()
 
-    val devenv = System.getProperty("strepitus.devenv").toBoolean()
+    val devenv = System.getenv("strepitus.devenv").toBoolean()
     if (devenv) {
         println("Running in development environment")
         glEnable(GL_DEBUG_OUTPUT)

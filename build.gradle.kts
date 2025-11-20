@@ -69,7 +69,5 @@ dependencies {
 val runDir = File(rootDir, "run")
 runDir.mkdir()
 tasks.withType<ComposeHotRun>().configureEach {
-    systemProperties["strepitus.devenv"] = true
-    systemProperties["strepitus.renderdoc"] = """C:\Program Files\RenderDoc\renderdoc.dll"""
     workingDir(runDir)
 }
