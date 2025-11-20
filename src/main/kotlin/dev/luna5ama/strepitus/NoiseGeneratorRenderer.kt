@@ -39,7 +39,7 @@ import kotlin.use
 
 class NoiseGeneratorRenderer(
     private val context: DirectContext,
-    private val scope: CoroutineScope,
+    scope: CoroutineScope,
     private val frameDispatcher: FrameDispatcher,
     private val appState: AppState,
     private val widthProvider: () -> Int,

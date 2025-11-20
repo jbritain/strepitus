@@ -149,13 +149,12 @@ fun MenuFlyoutScope.MenuFlyoutButton(
     )
 }
 
+@Suppress("AssignedValueIsNeverRead")
 @Composable
 fun App(renderer: NoiseGeneratorRenderer, appState: AppState) {
     var mainParameters by appState::mainParameters
     var outputParameters by appState::outputParameters
-    var viewerParameters by appState::viewerParameters
     var systemParameters by appState::systemParameters
-    val noiseLayers by appState::noiseLayers
 
     val darkMode = when (systemParameters.darkMode) {
         DarkModeOption.Auto -> isSystemInDarkTheme()
@@ -409,11 +408,7 @@ fun SideEditor(renderer: NoiseGeneratorRenderer, appState: AppState) {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NoiseViewer(renderer: NoiseGeneratorRenderer, appState: AppState) {
-    var mainParameters by appState::mainParameters
-    var outputParameters by appState::outputParameters
     var viewerParameters by appState::viewerParameters
-    var systemParameters by appState::systemParameters
-    val noiseLayers by appState::noiseLayers
     Row {
         Column(
             modifier = Modifier

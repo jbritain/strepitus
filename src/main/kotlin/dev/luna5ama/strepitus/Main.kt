@@ -49,7 +49,7 @@ fun main() {
     if (devenv) {
         println("Running in development environment")
         glEnable(GL_DEBUG_OUTPUT)
-        glDebugMessageCallback(GLDebugMessageCallback.create { source, type, id, severity, length, message, userParam ->
+        glDebugMessageCallback(GLDebugMessageCallback.create { source, type, _, severity, length, message, _ ->
             val sourceStr = when (source) {
                 GL_DEBUG_SOURCE_API -> "API"
                 GL_DEBUG_SOURCE_WINDOW_SYSTEM -> "WINDOW_SYSTEM"

@@ -29,10 +29,6 @@ class GlfwCoroutineDispatcher(private val windowHandle: Long) : CoroutineDispatc
         }
     }
 
-    fun stop() {
-        isStopped = true
-    }
-
     override fun dispatch(context: CoroutineContext, block: Runnable) {
         tasks.add(block)
     }

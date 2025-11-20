@@ -67,6 +67,7 @@ data class OutputSpec(
         }
 }
 
+@Suppress("unused")
 enum class Format(val gpuFormat: GPUFormat, val outputSpec: OutputSpec) {
     R8_UNORM(
         GPUFormat.R8G8B8A8_UN,
