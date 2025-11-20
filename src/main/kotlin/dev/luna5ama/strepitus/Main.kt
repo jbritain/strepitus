@@ -110,23 +110,27 @@ fun main() {
     val glfwDispatcher = GlfwCoroutineDispatcher() // a custom coroutine dispatcher, in which Compose will run
     val scope = CoroutineScope(glfwDispatcher)
 
-    glfwSetWindowCloseCallback(windowHandle) {
+    fun close() {
         scope.cancel()
         glfwDispatcher.stop()
+    }
+
+    glfwSetWindowCloseCallback(windowHandle) {
     }
 
     var renderFunc = {}
 
     val frameDispatcher = FrameDispatcher(glfwDispatcher) { renderFunc() }
     val state = GLFWWindowState()
-    val appState = AppState()
+    val appState = AppState(::close)
     appState.load()
 
     Runtime.getRuntime().addShutdownHook(Thread {
         appState.save()
     })
 
-    val renderer = NoiseGeneratorRenderer(scope, frameDispatcher, appState, state::windowWidth, state::windowHeight)
+    val renderer =
+        NoiseGeneratorRenderer(context, scope, frameDispatcher, appState, state::windowWidth, state::windowHeight)
     val readingStatesOnRender = mutableScatterSetOf<Any>()
 
     val applyObserverHandle: ObserverHandle = Snapshot.registerApplyObserver { changedStates, _ ->
@@ -174,8 +178,6 @@ fun main() {
         Snapshot.observe(readObserver = readingStatesOnRender::add) {
             renderer.draw()
         }
-        context.resetGLAll()
-        context.flush()
         composeScene.size = state.windowSize
         composeScene.render(surface.canvas.asComposeCanvas(), System.nanoTime())
 

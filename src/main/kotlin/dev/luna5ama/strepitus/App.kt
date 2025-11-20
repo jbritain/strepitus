@@ -32,7 +32,7 @@ import kotlin.io.path.writeText
 
 val roundingMode = MathContext(4, RoundingMode.FLOOR)
 
-class AppState {
+class AppState(private val exitFunc: () -> Unit) {
     var mainParameters by mutableStateOf(MainParameters())
     val noiseLayers = mutableStateListOf(
         NoiseLayerParameters(
@@ -43,6 +43,10 @@ class AppState {
     var viewerParameters by mutableStateOf(ViewerParameters())
 
     var systemParameters by mutableStateOf(SystemParameters())
+
+    fun exitApp() {
+        exitFunc()
+    }
 
     fun load() {
         runCatching {
@@ -113,7 +117,26 @@ class AppState {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun MenuFlyoutScope.MenuFlyoutButton(
+    onClick: () -> Unit,
+    icon: ImageVector? = null,
+    text: String,
+    trailingText: String? = null,
+) {
+    MenuFlyoutItem(
+        onClick = onClick,
+        icon = icon?.let { { Icon(imageVector = it, contentDescription = null) } },
+        text = { Text(text) },
+        trailing = trailingText?.let {
+            {
+                Spacer(Modifier.width(16.dp))
+                Text(it, style = FluentTheme.typography.caption)
+            }
+        }
+    )
+}
+
 @Composable
 fun App(renderer: NoiseGeneratorRenderer, appState: AppState) {
     var mainParameters by appState::mainParameters
@@ -131,120 +154,210 @@ fun App(renderer: NoiseGeneratorRenderer, appState: AppState) {
     FluentTheme(
         colors = if (darkMode) darkColors() else lightColors(),
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .background(color = Color.Transparent)
         ) {
-            Row(
+            MenuBar(
                 modifier = Modifier
                     .background(color = FluentTheme.colors.background.mica.base)
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 0.dp)
             ) {
-                var sideNavItem by remember { mutableStateOf(SideNavItem.Main) }
-                var sideNavExpanded by remember { mutableStateOf(false) }
-                SideNav(
-                    expanded = sideNavExpanded,
-                    onExpandStateChange = { sideNavExpanded = it },
-                ) {
-                    SideNavItem.entries.forEach { item ->
-                        if (item == SideNavItem.Setting) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
-                        SideNavItem(
-                            selected = sideNavItem == item,
-                            onClick = { if (it) sideNavItem = item },
-                            icon = {
-                                Icon(imageVector = item.icon, contentDescription = "")
-                            },
-                        ) {
-                            Text(item.name)
-                        }
-                    }
-                }
-
-                val scrollState = rememberScrollState()
-                ScrollbarContainer(
-                    adapter = rememberScrollbarAdapter(scrollState)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .width(480.dp)
-                            .fillMaxHeight()
-                            .padding(8.dp)
-                            .verticalScroll(scrollState)
-                    ) {
-                        Text(
-                            sideNavItem.name,
-                            style = FluentTheme.typography.title.copy(color = FluentTheme.colors.text.text.primary),
-                            modifier = Modifier.padding(8.dp, vertical = 12.dp)
+                MenuBarItem(
+                    items = {
+                        MenuFlyoutButton(
+                            onClick = { /* TODO */ },
+                            icon = Icons.Default.Document,
+                            text = "New Project",
+                            trailingText = "Ctrl+N"
                         )
-                        when (sideNavItem) {
-                            SideNavItem.Main -> {
-                                ParameterEditor(
-                                    mainParameters,
-                                    { mainParameters = it }
-                                )
-                            }
-
-                            SideNavItem.Output -> {
-                                ParameterEditor(
-                                    outputParameters,
-                                    { outputParameters = it }
-                                )
-                            }
-
-                            SideNavItem.Viewer -> {
-                                ParameterEditor(
-                                    viewerParameters,
-                                    { viewerParameters = it }
-                                )
-                            }
-
-                            SideNavItem.Noise -> {
-                                NoiseLayerEditor(noiseLayers)
-                            }
-
-                            SideNavItem.Setting -> {
-                                ParameterEditor(
-                                    systemParameters,
-                                    { systemParameters = it }
-                                )
-                                CardExpanderItem(heading = { }, icon = null) {
-                                    Button(
-                                        onClick = { renderer.reloadShaders() },
-                                        buttonColors = ButtonDefaults.accentButtonColors()
-                                    ) {
-                                        Text("Reload Shaders")
-                                    }
+                        MenuFlyoutButton(
+                            onClick = { /* TODO */ },
+                            icon = Icons.Default.FolderOpen,
+                            text = "Open Project",
+                            trailingText = "Ctrl+O"
+                        )
+                        MenuFlyoutButton(
+                            onClick = { /* TODO */ },
+                            icon = Icons.Default.Save,
+                            text = "Save Project",
+                            trailingText = "Ctrl+S"
+                        )
+                        MenuFlyoutSeparator()
+                        MenuFlyoutItem(
+                            text = { Text("Export Texture") },
+                            icon = { Icon(imageVector = Icons.Default.SaveArrowRight, contentDescription = null) },
+                            items = {
+                                OutputFileFormat.entries.forEach { format ->
+                                    MenuFlyoutButton(
+                                        onClick = { /* TODO */ },
+                                        text = format.name
+                                    )
                                 }
+                            }
+                        )
+                        MenuFlyoutSeparator()
+                        MenuFlyoutButton(
+                            onClick = { appState.exitApp() },
+                            icon = Icons.Default.Dismiss,
+                            text = "Exit"
+                        )
+                    }
+                ) {
+                    Text("File")
+                }
+            }
+            Row {
+                Box(
+                    modifier = Modifier
+                        .background(color = FluentTheme.colors.background.mica.base)
+                ) {
+                    SideEditor(renderer, appState)
+                }
+                NoiseViewer(renderer, appState)
+            }
+        }
+    }
+
+}
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalFluentApi::class)
+@Composable
+fun SideEditor(renderer: NoiseGeneratorRenderer, appState: AppState) {
+    var mainParameters by appState::mainParameters
+    var outputParameters by appState::outputParameters
+    var viewerParameters by appState::viewerParameters
+    var systemParameters by appState::systemParameters
+    val noiseLayers by appState::noiseLayers
+
+    Row {
+        var sideNavItem by remember { mutableStateOf(SideNavItem.Main) }
+        var sideNavExpanded by remember { mutableStateOf(false) }
+
+        @Composable
+        fun AppSideNavItem(item: SideNavItem) {
+            SideNavItem(
+                selected = sideNavItem == item,
+                onClick = { if (it) sideNavItem = item },
+                icon = {
+                    Icon(imageVector = item.icon, contentDescription = "")
+                },
+            ) {
+                Text(item.name)
+            }
+        }
+
+        SideNav(
+            expanded = sideNavExpanded,
+            onExpandStateChange = { sideNavExpanded = it },
+            footer = {
+                val item = SideNavItem.Setting
+                AppSideNavItem(item)
+            }
+        ) {
+            SideNavItem.entries.dropLast(1).forEach { item ->
+                AppSideNavItem(item)
+            }
+        }
+
+        val scrollState = rememberScrollState()
+        ScrollbarContainer(
+            modifier = Modifier
+                .background(color = FluentTheme.colors.background.layer.default),
+            adapter = rememberScrollbarAdapter(scrollState)
+        ) {
+            Column(
+                modifier = Modifier
+                    .width(480.dp)
+                    .fillMaxHeight()
+                    .padding(8.dp)
+                    .verticalScroll(scrollState)
+            ) {
+                Text(
+                    sideNavItem.name,
+                    style = FluentTheme.typography.title.copy(color = FluentTheme.colors.text.text.primary),
+                    modifier = Modifier.padding(8.dp, vertical = 12.dp)
+                )
+                when (sideNavItem) {
+                    SideNavItem.Main -> {
+                        ParameterEditor(
+                            mainParameters,
+                            { mainParameters = it }
+                        )
+                    }
+
+                    SideNavItem.Output -> {
+                        ParameterEditor(
+                            outputParameters,
+                            { outputParameters = it }
+                        )
+                    }
+
+                    SideNavItem.Viewer -> {
+                        ParameterEditor(
+                            viewerParameters,
+                            { viewerParameters = it }
+                        )
+                    }
+
+                    SideNavItem.Noise -> {
+                        NoiseLayerEditor(noiseLayers)
+                    }
+
+                    SideNavItem.Setting -> {
+                        ParameterEditor(
+                            systemParameters,
+                            { systemParameters = it }
+                        )
+                        CardExpanderItem(heading = { }, icon = null) {
+                            Button(
+                                onClick = { renderer.reloadShaders() },
+                                buttonColors = ButtonDefaults.accentButtonColors()
+                            ) {
+                                Text("Reload Shaders")
                             }
                         }
                     }
                 }
             }
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .onSizeChanged {
-                        renderer.frameWidth = it.width
-                        renderer.frameHeight = it.height
-                    }
-                    .scrollable(
-                        orientation = Orientation.Vertical,
-                        state = rememberScrollableState { delta ->
-                            viewerParameters = viewerParameters.copy(
-                                zoom = (viewerParameters.zoom + (delta / 1000.0).toBigDecimal()).round(roundingMode)
-                            )
-                            delta
-                        }
-                    )
-                    .onDrag {
-                        viewerParameters = viewerParameters.copy(
-                            centerX = (viewerParameters.centerX - it.x.toBigDecimal()).round(roundingMode),
-                            centerY = (viewerParameters.centerY - it.y.toBigDecimal()).round(roundingMode)
-                        )
-                    }
-            ) {}
         }
+    }
+
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun NoiseViewer(renderer: NoiseGeneratorRenderer, appState: AppState) {
+    var mainParameters by appState::mainParameters
+    var outputParameters by appState::outputParameters
+    var viewerParameters by appState::viewerParameters
+    var systemParameters by appState::systemParameters
+    val noiseLayers by appState::noiseLayers
+    Row {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .onSizeChanged {
+                    renderer.frameWidth = it.width
+                    renderer.frameHeight = it.height
+                }
+                .scrollable(
+                    orientation = Orientation.Vertical,
+                    state = rememberScrollableState { delta ->
+                        viewerParameters = viewerParameters.copy(
+                            zoom = (viewerParameters.zoom + (delta / 1000.0).toBigDecimal()).round(roundingMode)
+                        )
+                        delta
+                    }
+                )
+                .onDrag {
+                    viewerParameters = viewerParameters.copy(
+                        centerX = (viewerParameters.centerX - it.x.toBigDecimal()).round(roundingMode),
+                        centerY = (viewerParameters.centerY - it.y.toBigDecimal()).round(roundingMode)
+                    )
+                }
+        ) {}
     }
 }
 
