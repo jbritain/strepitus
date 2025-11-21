@@ -22,25 +22,26 @@ import io.github.composefluent.icons.regular.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
 import org.lwjgl.glfw.GLFW.glfwSetWindowShouldClose
-import org.lwjgl.system.MemoryStack
-import org.lwjgl.util.nfd.NFDFilterItem
-import org.lwjgl.util.nfd.NFDSaveDialogArgs
-import org.lwjgl.util.nfd.NativeFileDialog
+import org.lwjgl.glfw.GLFW.glfwSetWindowTitle
 import java.math.MathContext
 import java.math.RoundingMode
-import kotlin.io.path.Path
-import kotlin.io.path.inputStream
-import kotlin.io.path.readText
-import kotlin.io.path.writeText
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.io.path.*
 
 val roundingMode = MathContext(4, RoundingMode.FLOOR)
 
 class AppState(
-    private val windowHandle: Long,
+    val windowHandle: Long,
     val scope: CoroutineScope,
 ) {
     var mainParameters by mutableStateOf(MainParameters())
@@ -54,59 +55,172 @@ class AppState(
 
     var systemParameters by mutableStateOf(SystemParameters())
 
+    var persistentStates by mutableStateOf(PersistentStates())
+
+    val errorPrompts = mutableStateListOf<String>()
+
+    private val lastSaved = AtomicInteger(Int.MIN_VALUE)
+    private val changeCounter = AtomicInteger(Int.MIN_VALUE)
+
+    val hasUnsavedChanges: Boolean
+        get() = lastSaved.get() != changeCounter.get()
+
+    private fun onChange() {
+        changeCounter.incrementAndGet()
+    }
+
+    init {
+        scope.launch {
+            snapshotFlow { mainParameters }
+                .collect {
+                    onChange()
+                }
+        }
+        scope.launch {
+            snapshotFlow { noiseLayers.toList() }
+                .collect {
+                    onChange()
+                }
+        }
+        scope.launch {
+            snapshotFlow { outputParameters }
+                .collect {
+                    onChange()
+                }
+        }
+        scope.launch {
+            snapshotFlow { viewerParameters }
+                .collect {
+                    onChange()
+                }
+        }
+
+
+        scope.launch {
+            snapshotFlow { persistentStates }
+                .collect {
+                    val title = it.openedFile?.let { "${it.name} - Strepitus" } ?: "Strepitus"
+                    glfwSetWindowTitle(windowHandle, title)
+                }
+        }
+    }
+
     fun exitApp() {
         glfwSetWindowShouldClose(windowHandle, true)
     }
 
     fun load() {
-        runCatching {
-            loadSystem(SYSTEM_CONFIG_PATH)
-        }
-        runCatching {
-            loadNoise(NOISE_CONFIG_PATH)
-        }
+        loadNoise(NOISE_CONFIG_PATH)
+        loadSystem(SYSTEM_CONFIG_PATH)
     }
 
     fun save() {
-        runCatching {
-            saveSystem(SYSTEM_CONFIG_PATH)
-        }
-        runCatching {
-            saveNoise(NOISE_CONFIG_PATH)
-        }
+        saveNoise(NOISE_CONFIG_PATH)
+        saveSystem(SYSTEM_CONFIG_PATH)
     }
 
     fun loadNoise(path: java.nio.file.Path) {
-        path.inputStream().use {
-            val config = JSON.decodeFromString<NoiseConfig>(path.readText())
-            mainParameters = config.mainParameters
-            outputParameters = config.outputParameters
-            viewerParameters = config.viewerParameters
-            noiseLayers.clear()
-            noiseLayers.addAll(config.noiseLayers)
+        runCatching {
+            path.inputStream().use {
+                val config = JSON.decodeFromString<NoiseConfig>(path.readText())
+                mainParameters = config.mainParameters
+                outputParameters = config.outputParameters
+                viewerParameters = config.viewerParameters
+                noiseLayers.clear()
+                noiseLayers.addAll(config.noiseLayers)
+            }
+        }.onFailure {
+            it.printStackTrace()
+            errorPrompts += "Failed to load noise config: ${it.message}"
         }
     }
 
     fun saveNoise(path: java.nio.file.Path) {
-        val config = NoiseConfig(
-            mainParameters = mainParameters,
-            noiseLayers = noiseLayers.toList(),
-            outputParameters = outputParameters,
-            viewerParameters = viewerParameters
+        runCatching {
+            lastSaved.set(changeCounter.get())
+            val config = NoiseConfig(
+                mainParameters = mainParameters,
+                noiseLayers = noiseLayers.toList(),
+                outputParameters = outputParameters,
+                viewerParameters = viewerParameters
+            )
+            path.writeText(JSON.encodeToString(config))
+        }.onFailure {
+            it.printStackTrace()
+            errorPrompts += "Failed to save noise config: ${it.message}"
+        }
+    }
+
+    fun resetNoise() {
+        persistentStates = persistentStates.copy(openedFile = null)
+        mainParameters = MainParameters()
+        outputParameters = OutputParameters()
+        viewerParameters = ViewerParameters()
+        noiseLayers.clear()
+        noiseLayers.add(
+            NoiseLayerParameters(
+                baseSeed = NoiseLayerParameters.generateBaseSeed(0)
+            )
         )
-        path.writeText(JSON.encodeToString(config))
     }
 
     fun saveSystem(path: java.nio.file.Path) {
-        path.writeText(JSON.encodeToString(systemParameters))
+        runCatching {
+            val config = SystemConfig(
+                persistentStates = persistentStates,
+                systemParameters = systemParameters
+            )
+            path.writeText(JSON.encodeToString(config))
+        }.onFailure {
+            it.printStackTrace()
+            errorPrompts += "Failed to save system config: ${it.message}"
+        }
     }
 
     fun loadSystem(path: java.nio.file.Path) {
-        systemParameters = JSON.decodeFromString(path.readText())
+        runCatching {
+            path.inputStream().use {
+                val config = JSON.decodeFromString<SystemConfig>(path.readText())
+                persistentStates = config.persistentStates
+                systemParameters = config.systemParameters
+            }
+        }.onFailure {
+            it.printStackTrace()
+            errorPrompts += "Failed to load system config: ${it.message}"
+        }.onSuccess {
+            persistentStates.openedFile?.let {
+                loadNoise(it)
+            }
+        }
     }
 
     @Serializable
-    data class NoiseConfig(
+    data class PersistentStates(
+        @Serializable(with = PathSerilizer::class)
+        val openedFile: java.nio.file.Path? = null
+    ) {
+        companion object PathSerilizer : KSerializer<java.nio.file.Path> {
+            override val descriptor: SerialDescriptor
+                get() = PrimitiveSerialDescriptor("java.nio.file.Path", PrimitiveKind.STRING)
+
+            override fun serialize(encoder: Encoder, value: java.nio.file.Path) {
+                encoder.encodeString(value.toString())
+            }
+
+            override fun deserialize(decoder: Decoder): java.nio.file.Path {
+                return Path(decoder.decodeString())
+            }
+        }
+    }
+
+    @Serializable
+    private data class SystemConfig(
+        val persistentStates: PersistentStates,
+        val systemParameters: SystemParameters
+    )
+
+    @Serializable
+    private data class NoiseConfig(
         val mainParameters: MainParameters,
         val noiseLayers: List<NoiseLayerParameters>,
         val outputParameters: OutputParameters,
@@ -149,11 +263,9 @@ fun MenuFlyoutScope.MenuFlyoutButton(
     )
 }
 
-@Suppress("AssignedValueIsNeverRead")
+
 @Composable
 fun App(renderer: NoiseGeneratorRenderer, appState: AppState) {
-    var mainParameters by appState::mainParameters
-    var outputParameters by appState::outputParameters
     var systemParameters by appState::systemParameters
 
     val darkMode = when (systemParameters.darkMode) {
@@ -162,131 +274,26 @@ fun App(renderer: NoiseGeneratorRenderer, appState: AppState) {
         DarkModeOption.Dark -> true
     }
 
-    var errorPrompt by remember { mutableStateOf<String?>(null) }
-    errorPrompt?.let { message ->
-        ContentDialog(
-            title = "Error",
-            visible = true,
-            primaryButtonText = "OK",
-            onButtonClick = {
-                errorPrompt = null
-            },
-            content = { Text(message) }
-        )
-    }
-
-    var exportingImage by remember { mutableStateOf(false) }
-    var exportingFormat by remember { mutableStateOf(OutputFileFormat.PNG) }
-
-    if (exportingImage) {
-        exportingImage = false
-        val outputFormat = exportingFormat
-        MemoryStack.stackPush().use {
-            val filters = NFDFilterItem.calloc(1, it)
-            filters[0]
-                .name(it.UTF8("${outputFormat.fullName} File"))
-                .spec(it.UTF8(outputFormat.extensions.joinToString(",")))
-            val args = NFDSaveDialogArgs.calloc(it)
-                .filterList(filters)
-            val savePath = it.mallocPointer(1)
-            when (NativeFileDialog.NFD_SaveDialog_With(savePath, args)) {
-                NativeFileDialog.NFD_OKAY -> {
-                    val path = Path(savePath.getStringUTF8(0))
-                    appState.scope.launch {
-                        runCatching {
-                            renderer.saveImage(path, outputFormat)
-                        }.onFailure { ex ->
-                            errorPrompt = "Failed to export image:\n${ex.message}"
-                        }
-                    }
-                }
-
-                NativeFileDialog.NFD_CANCEL -> {
-                    // User cancelled
-                }
-
-                else -> {
-                    errorPrompt = NativeFileDialog.NFD_GetError().toString()
-                }
-            }
-        }
-    }
-
     FluentTheme(
         colors = if (darkMode) darkColors() else lightColors(),
     ) {
+        appState.errorPrompts.firstOrNull()?.let { message ->
+            ContentDialog(
+                title = "Error",
+                visible = true,
+                primaryButtonText = "OK",
+                onButtonClick = {
+                    appState.errorPrompts.removeFirstOrNull()
+                },
+                content = { Text(message) }
+            )
+        }
+
         Column(
             modifier = Modifier
                 .background(color = Color.Transparent)
         ) {
-            MenuBar(
-                modifier = Modifier
-                    .background(color = FluentTheme.colors.background.mica.base)
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 0.dp)
-            ) {
-                MenuBarItem(
-                    items = {
-                        MenuFlyoutButton(
-                            onClick = { /* TODO */ },
-                            icon = Icons.Default.Document,
-                            text = "New Project",
-                            trailingText = "Ctrl+N"
-                        )
-                        MenuFlyoutButton(
-                            onClick = { /* TODO */ },
-                            icon = Icons.Default.FolderOpen,
-                            text = "Open Project",
-                            trailingText = "Ctrl+O"
-                        )
-                        MenuFlyoutButton(
-                            onClick = { /* TODO */ },
-                            icon = Icons.Default.Save,
-                            text = "Save Project",
-                            trailingText = "Ctrl+S"
-                        )
-                        MenuFlyoutSeparator()
-                        MenuFlyoutItem(
-                            text = { Text("Export Texture") },
-                            icon = { Icon(imageVector = Icons.Default.SaveArrowRight, contentDescription = null) },
-                            items = {
-                                fun isFormatEnabled(format: OutputFileFormat): Boolean {
-                                    if ((mainParameters.slices > 1) && format.only2D) {
-                                        return false
-                                    }
-                                    val outputSpec = outputParameters.format.outputSpec
-                                    if (!format.supportedChannelCount.contains(outputSpec.channels)) {
-                                        return false
-                                    }
-                                    if (!format.supportedPixelType.contains(outputSpec.pixelType)) {
-                                        return false
-                                    }
-                                    return true
-                                }
-
-                                OutputFileFormat.entries.forEach { format ->
-                                    MenuFlyoutButton(
-                                        onClick = {
-                                            exportingFormat = format
-                                            exportingImage = true
-                                        },
-                                        text = format.name,
-                                        enabled = isFormatEnabled(format)
-                                    )
-                                }
-                            }
-                        )
-                        MenuFlyoutSeparator()
-                        MenuFlyoutButton(
-                            onClick = { appState.exitApp() },
-                            icon = Icons.Default.Dismiss,
-                            text = "Exit"
-                        )
-                    }
-                ) {
-                    Text("File")
-                }
-            }
+            AppMenuBar(renderer, appState)
             Row {
                 Box(
                     modifier = Modifier
@@ -299,6 +306,245 @@ fun App(renderer: NoiseGeneratorRenderer, appState: AppState) {
         }
     }
 
+}
+
+data class DiscardConfirmState(
+    val onSave: () -> Unit,
+    val onDiscard: () -> Unit,
+    val onCancel: () -> Unit
+)
+
+private fun saveProjectAs(appState: AppState): Boolean {
+    val filters = listOf(
+        DialogFilter("Project File", listOf("json"))
+    )
+    return when (val result = showSaveDialog(filters)) {
+        is DialogResult.Success -> {
+            runCatching {
+                appState.saveNoise(result.filePath)
+            }.onSuccess {
+                appState.persistentStates = appState.persistentStates.copy(openedFile = result.filePath)
+            }.onFailure {
+                it.printStackTrace()
+                appState.errorPrompts += "Failed to export image: ${it.message}"
+            }.isSuccess
+        }
+
+        is DialogResult.Canceled -> {
+            // User cancelled
+            false
+        }
+
+        is DialogResult.Error -> {
+            appState.errorPrompts += result.message
+            false
+        }
+    }
+}
+
+private fun saveProject(appState: AppState): Boolean {
+    return appState.persistentStates.openedFile?.let { path ->
+        runCatching {
+            appState.saveNoise(path)
+        }.onFailure {
+            it.printStackTrace()
+            appState.errorPrompts += "Failed to export image: ${it.message}"
+        }.isSuccess
+    } ?: saveProjectAs(appState)
+}
+
+private fun openProject(appState: AppState) {
+    val filters = listOf(
+        DialogFilter("Project File", listOf("json"))
+    )
+    when (val result = showOpenDialog(filters)) {
+        is DialogResult.Success -> {
+            runCatching {
+                appState.loadNoise(result.filePath)
+            }.onSuccess {
+                appState.persistentStates = appState.persistentStates.copy(openedFile = result.filePath)
+            }.onFailure {
+                it.printStackTrace()
+                appState.errorPrompts += "Failed to export image: ${it.message}"
+            }
+        }
+
+        is DialogResult.Canceled -> {
+            // User cancelled
+        }
+
+        is DialogResult.Error -> {
+            appState.errorPrompts += result.message
+        }
+    }
+}
+
+@Composable
+fun AppMenuBar(renderer: NoiseGeneratorRenderer, appState: AppState) {
+    var mainParameters by appState::mainParameters
+    var outputParameters by appState::outputParameters
+
+    var exportingFormat by remember { mutableStateOf<OutputFileFormat?>(null) }
+
+    exportingFormat?.let { outputFormat ->
+        exportingFormat = null
+        val filters = listOf(
+            DialogFilter("${outputFormat.fullName} File", outputFormat.extensions)
+        )
+        when (val result = showSaveDialog(filters)) {
+            is DialogResult.Success -> {
+                appState.scope.launch {
+                    runCatching {
+                        renderer.saveImage(result.filePath, outputFormat)
+                    }.onFailure { ex ->
+                        appState.errorPrompts += "Failed to export image: ${ex.message}"
+                    }
+                }
+            }
+
+            is DialogResult.Canceled -> {
+                // User cancelled
+            }
+
+            is DialogResult.Error -> {
+                appState.errorPrompts += result.message
+            }
+        }
+    }
+
+    var discardConfirmState by remember { mutableStateOf<DiscardConfirmState?>(null) }
+
+    discardConfirmState?.let { state ->
+        ContentDialog(
+            title = "Confirm Discard Changes",
+            visible = true,
+            primaryButtonText = "Save",
+            secondaryButtonText = "Discard",
+            closeButtonText = "Cancel",
+            onButtonClick = {
+                when (it) {
+                    ContentDialogButton.Primary -> {
+                        if (saveProject(appState)) {
+                            state.onSave()
+                        } else {
+                            state.onCancel()
+                        }
+                    }
+
+                    ContentDialogButton.Secondary -> state.onDiscard()
+                    ContentDialogButton.Close -> state.onCancel()
+                }
+                discardConfirmState = null
+            },
+            content = {
+                Text("You have unsaved changes. Do you want to save them before proceeding?")
+            }
+        )
+    }
+
+    fun checkUnsavedChanges(proceed: () -> Unit) {
+        if (appState.hasUnsavedChanges) {
+            discardConfirmState = DiscardConfirmState(
+                onSave = proceed,
+                onDiscard = proceed,
+                onCancel = {}
+            )
+        } else {
+            proceed()
+        }
+    }
+
+    MenuBar(
+        modifier = Modifier
+            .background(color = FluentTheme.colors.background.mica.base)
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 0.dp)
+    ) {
+        MenuBarItem(
+            items = {
+                MenuFlyoutButton(
+                    onClick = {
+                        checkUnsavedChanges(appState::resetNoise)
+                        isFlyoutVisible = false
+                    },
+                    icon = Icons.Default.Document,
+                    text = "New Project",
+                    trailingText = "Ctrl+N"
+                )
+                MenuFlyoutButton(
+                    onClick = {
+                        checkUnsavedChanges {
+                            openProject(appState)
+                        }
+                        isFlyoutVisible = false
+                    },
+                    icon = Icons.Default.FolderOpen,
+                    text = "Open Project",
+                    trailingText = "Ctrl+O"
+                )
+                MenuFlyoutButton(
+                    onClick = {
+                        saveProject(appState)
+                        isFlyoutVisible = false
+                    },
+                    icon = Icons.Default.Save,
+                    text = "Save Project",
+                    trailingText = "Ctrl+S"
+                )
+                MenuFlyoutButton(
+                    onClick = {
+                        saveProjectAs(appState)
+                        isFlyoutVisible = false
+                    },
+                    icon = Icons.Default.SaveEdit,
+                    text = "Save Project As",
+                    trailingText = "Ctrl+Shift+S"
+                )
+                MenuFlyoutSeparator()
+                MenuFlyoutItem(
+                    text = { Text("Export Texture") },
+                    icon = { Icon(imageVector = Icons.Default.SaveArrowRight, contentDescription = null) },
+                    items = {
+                        fun isFormatEnabled(format: OutputFileFormat): Boolean {
+                            if ((mainParameters.slices > 1) && format.only2D) {
+                                return false
+                            }
+                            val outputSpec = outputParameters.format.outputSpec
+                            if (!format.supportedChannelCount.contains(outputSpec.channels)) {
+                                return false
+                            }
+                            if (!format.supportedPixelType.contains(outputSpec.pixelType)) {
+                                return false
+                            }
+                            return true
+                        }
+
+                        OutputFileFormat.entries.forEach { format ->
+                            MenuFlyoutButton(
+                                onClick = {
+                                    isFlyoutVisible = false
+                                    exportingFormat = format
+                                },
+                                text = format.name,
+                                enabled = isFormatEnabled(format)
+                            )
+                        }
+                    }
+                )
+                MenuFlyoutSeparator()
+                MenuFlyoutButton(
+                    onClick = {
+                        checkUnsavedChanges(appState::exitApp)
+                        isFlyoutVisible = false
+                    },
+                    icon = Icons.Default.Dismiss,
+                    text = "Exit"
+                )
+            }
+        ) {
+            Text("File")
+        }
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalFluentApi::class)
