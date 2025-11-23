@@ -174,6 +174,11 @@ enum class GradientMode {
     Both
 }
 
+enum class StepFunctionType {
+    LinearStep,
+    SmoothStep,
+}
+
 @Serializable
 @Immutable
 sealed interface NoiseSpecificParameters : ShaderProgramParameters {
@@ -229,9 +234,70 @@ sealed interface NoiseSpecificParameters : ShaderProgramParameters {
     @Serializable
     data class Worley(
         val distanceFunction: DistanceFunction = DistanceFunction.Euclidean,
+        val smoothWorley: SmoothWorley = SmoothWorley(),
+        val regularWorley: RegularWorley = RegularWorley(),
     ) : NoiseSpecificParameters {
         override val type: NoiseType
             get() = NoiseType.Worley
+
+        override fun applyShaderUniforms(shaderProgram: ShaderProgram) {
+            super.applyShaderUniforms(shaderProgram)
+            shaderProgram.uniform1i("uval_worleyDistanceFunction", this.distanceFunction.ordinal)
+            this.smoothWorley.applyShaderUniforms(shaderProgram)
+            this.regularWorley.applyShaderUniforms(shaderProgram)
+        }
+
+        @Serializable
+        data class SmoothWorley(
+            val flip: Boolean = false,
+            @DecimalRangeVal(min = -1.0, max = 1.0, step = 0.03125)
+            val mixWeight: BigDecimal = 1.0.toBigDecimal(),
+            @DecimalRangeVal(min = 0.0, max = 1.0, step = 0.03125)
+            val smoothness: BigDecimal = 0.5.toBigDecimal(),
+            @DecimalRangeVal(min = 0.0, max = 4.0, step = 0.0625)
+            val randPower: BigDecimal = 1.0.toBigDecimal(),
+            @DecimalRangeVal(min = -2.0, max = 2.0, step = 0.0625)
+            val minBound: BigDecimal = 0.0.toBigDecimal(),
+            @DecimalRangeVal(min = -2.0, max = 2.0, step = 0.0625)
+            val maxBound: BigDecimal = 1.0.toBigDecimal(),
+            val stepFunctionType: StepFunctionType = StepFunctionType.SmoothStep,
+        ) : ShaderProgramParameters {
+            override fun applyShaderUniforms(shaderProgram: ShaderProgram) {
+                shaderProgram.uniform1i("uval_worleySmoothFlip", this.flip.toInt())
+                shaderProgram.uniform1f("uval_worleySmoothMixWeight", this.mixWeight.toFloat())
+                shaderProgram.uniform1f("uval_worleySmoothSmoothness", this.smoothness.toFloat())
+                shaderProgram.uniform1f("uval_worleySmoothRandPower", this.randPower.toFloat())
+                shaderProgram.uniform2f("uval_worleySmoothBounds", this.minBound.toFloat(), this.maxBound.toFloat())
+                shaderProgram.uniform1i("uval_worleySmoothStepFuncType", this.stepFunctionType.ordinal)
+            }
+        }
+
+        @Serializable
+        data class RegularWorley(
+            val f1Flip: Boolean = false,
+            val f2Flip: Boolean = false,
+            @DecimalRangeVal(min = -1.0, max = 1.0, step = 0.03125)
+            val f1MixWeight: BigDecimal = 0.0.toBigDecimal(),
+            @DecimalRangeVal(min = -1.0, max = 1.0, step = 0.03125)
+            val f2MixWeight: BigDecimal = 0.0.toBigDecimal(),
+            @DecimalRangeVal(min = 0.0, max = 4.0, step = 0.0625)
+            val randPower: BigDecimal = 1.0.toBigDecimal(),
+            @DecimalRangeVal(min = -2.0, max = 2.0, step = 0.0625)
+            val minBound: BigDecimal = 0.0.toBigDecimal(),
+            @DecimalRangeVal(min = -2.0, max = 2.0, step = 0.0625)
+            val maxBound: BigDecimal = 1.0.toBigDecimal(),
+            val stepFunctionType: StepFunctionType = StepFunctionType.SmoothStep,
+        ) : ShaderProgramParameters {
+            override fun applyShaderUniforms(shaderProgram: ShaderProgram) {
+                shaderProgram.uniform1i("uval_worleyRegularF1Flip", this.f1Flip.toInt())
+                shaderProgram.uniform1i("uval_worleyRegularF2Flip", this.f2Flip.toInt())
+                shaderProgram.uniform1f("uval_worleyRegularF1MixWeight", this.f1MixWeight.toFloat())
+                shaderProgram.uniform1f("uval_worleyRegularF2MixWeight", this.f2MixWeight.toFloat())
+                shaderProgram.uniform1f("uval_worleyRegularRandPower", this.randPower.toFloat())
+                shaderProgram.uniform2f("uval_worleyRegularBounds", this.minBound.toFloat(), this.maxBound.toFloat())
+                shaderProgram.uniform1i("uval_worleyRegularStepFuncType", this.stepFunctionType.ordinal)
+            }
+        }
     }
 }
 
