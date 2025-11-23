@@ -117,7 +117,6 @@ float chebyshevDistance(vec3 a, vec3 b) {
 }
 
 float worleyNoise2D(vec2 x, vec2 freq, uint seed) {
-    uvec2 centerID = uvec2(ivec2(floor(x)));
     vec2 currCenterOffset = fract(x);
 
     // Initialize results
@@ -131,7 +130,7 @@ float worleyNoise2D(vec2 x, vec2 freq, uint seed) {
             // Offset to the neighbor cell
             ivec2 idOffset = ivec2(ix, iy);
 
-            uvec2 cellID = centerID + (idOffset + 2);
+            uvec2 cellID = hashCoordWarp(x + (idOffset + 2), freq);
 
             uvec3 hashPos = uvec3(cellID, seed);
             vec3 hashVal = hash_uintToFloat(hash_33_q3(hashPos));
@@ -185,7 +184,6 @@ float worleyNoise2D(vec2 x, vec2 freq, uint seed) {
 }
 
 float worleyNoise3D(vec3 x, vec3 freq, uint seed) {
-    uvec3 centerID = uvec3(ivec3(floor(x)));
     vec3 currCenterOffset = fract(x);
 
     // Initialize results
@@ -200,7 +198,7 @@ float worleyNoise3D(vec3 x, vec3 freq, uint seed) {
                 // Offset to the neighbor cell
                 ivec3 idOffset = ivec3(ix, iy, iz);
 
-                uvec3 cellID = centerID + (idOffset + 2);
+                uvec3 cellID = hashCoordWarp(x + (idOffset + 2), freq);
 
                 uvec4 hashPos = uvec4(cellID, seed);
                 vec4 hashVal = hash_uintToFloat(hash_44_q3(hashPos));
@@ -243,7 +241,7 @@ float worleyNoise3D(vec3 x, vec3 freq, uint seed) {
             }
         }
     }
-
+    m = uval_worleySmoothFlip == 0 ? saturate(1.0 - m): saturate(m);
     f1 = uval_worleyRegularF1Flip == 0 ? f1: saturate(1.0 - f1);
     f2 = uval_worleyRegularF2Flip == 0 ? f2: saturate(1.0 - f2);
 
@@ -262,7 +260,7 @@ vec4 worleyNoise2(vec3 p, float freq, uint seed) {
 
 vec4 worleyNoise3(vec3 p, float freq, uint seed) {
     freq = floor(freq);
-    float value = worleyNoise3D(p * freq / 2.0, vec3(freq), seed);
+    float value = worleyNoise3D(p * freq / 2.0, uvec3(freq), seed);
     return vec4(value);
 }
 
