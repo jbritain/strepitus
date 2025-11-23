@@ -25,7 +25,6 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -59,7 +58,26 @@ class AppState(
 
     var persistentStates by mutableStateOf(PersistentStates())
 
-    var openedFile by mutableStateOf(NOISE_CONFIG_PATH)
+    private val openedFile0 = mutableStateOf(NOISE_CONFIG_PATH)
+    var openedFile: java.nio.file.Path
+        get() {
+            return openedFile0.value
+        }
+        set(value) {
+            var prevRecentProjects = (persistentStates.recentProjects - value).toList()
+            val removeCount = prevRecentProjects.size - 10
+            if (removeCount > 0) {
+                prevRecentProjects = prevRecentProjects.drop(removeCount)
+            }
+            val new = prevRecentProjects.toMutableSet()
+            new.add(value)
+
+            persistentStates = persistentStates.copy(
+                recentProjects = new
+            )
+            openedFile0.value = value
+        }
+
     val openedFileNotDefault get() = openedFile.takeIf { it != NOISE_CONFIG_PATH }
 
     val errorPrompts = mutableStateListOf<String>()
@@ -213,12 +231,9 @@ class AppState(
 
     @Serializable
     data class PersistentStates(
-        @Transient
-        val dummy: Int = 0,
-//        @Serializable(with = PathSerilizer::class)
-//        val openedFile: java.nio.file.Path? = null
+        val recentProjects: Set<@Serializable(PathSerilizer::class) java.nio.file.Path> = emptySet()
     ) {
-        companion object PathSerilizer : KSerializer<java.nio.file.Path> {
+        object PathSerilizer : KSerializer<java.nio.file.Path> {
             override val descriptor: SerialDescriptor
                 get() = PrimitiveSerialDescriptor("java.nio.file.Path", PrimitiveKind.STRING)
 
@@ -543,6 +558,24 @@ fun AppMenuBar(renderer: NoiseGeneratorRenderer, appState: AppState) {
                     icon = Icons.Default.FolderOpen,
                     text = "Open Project",
                     trailingText = "Ctrl+O"
+                )
+                MenuFlyoutItem(
+                    text = { Text("Recent Projects") },
+                    icon = { Icon(imageVector = Icons.Default.Clock, contentDescription = null) },
+                    items = {
+                        appState.persistentStates.recentProjects.reversed().forEach { path ->
+                            MenuFlyoutButton(
+                                onClick = {
+                                    checkUnsavedChanges {
+                                        appState.loadNoise(path)
+                                        appState.openedFile = path
+                                    }
+                                    isFlyoutVisible = false
+                                },
+                                text = path.toString(),
+                            )
+                        }
+                    }
                 )
                 MenuFlyoutButton(
                     onClick = {
