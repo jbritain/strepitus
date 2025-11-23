@@ -422,12 +422,30 @@ private fun openProject(appState: AppState) {
     }
 }
 
+
 @Composable
 fun AppMenuBar(renderer: NoiseGeneratorRenderer, appState: AppState) {
+    data class ExportParameters(
+        val format: OutputFileFormat,
+        val filePath: java.nio.file.Path
+    )
+
     var mainParameters by appState::mainParameters
     var outputParameters by appState::outputParameters
 
     var exportingFormat by remember { mutableStateOf<OutputFileFormat?>(null) }
+    var lastExportParameters by remember { mutableStateOf<ExportParameters?>(null) }
+
+    fun export(params: ExportParameters) {
+        appState.scope.launch {
+            runCatching {
+                renderer.saveImage(params.filePath, params.format)
+                lastExportParameters = params
+            }.onFailure { ex ->
+                appState.errorPrompts += "Failed to export image: ${ex.message}"
+            }
+        }
+    }
 
     exportingFormat?.let { outputFormat ->
         exportingFormat = null
@@ -436,13 +454,7 @@ fun AppMenuBar(renderer: NoiseGeneratorRenderer, appState: AppState) {
         )
         when (val result = showSaveDialog(filters)) {
             is DialogResult.Success -> {
-                appState.scope.launch {
-                    runCatching {
-                        renderer.saveImage(result.filePath, outputFormat)
-                    }.onFailure { ex ->
-                        appState.errorPrompts += "Failed to export image: ${ex.message}"
-                    }
-                }
+                export(ExportParameters(outputFormat, result.filePath))
             }
 
             is DialogResult.Canceled -> {
@@ -535,6 +547,18 @@ fun AppMenuBar(renderer: NoiseGeneratorRenderer, appState: AppState) {
 
             if (ctrlPressed) {
                 checkUnsavedChanges(appState::resetNoise)
+            }
+        }
+
+        renderer.keyboard.register(GLFW_KEY_E) { action ->
+            if (action != GLFW_RELEASE) return@register
+
+            val ctrlPressed = renderer.keyboard.ctrlPressed
+
+            if (ctrlPressed) {
+                lastExportParameters?.let {
+                    export(it)
+                }
             }
         }
     }
@@ -633,6 +657,18 @@ fun AppMenuBar(renderer: NoiseGeneratorRenderer, appState: AppState) {
                             )
                         }
                     }
+                )
+                MenuFlyoutButton(
+                    onClick = {
+                        lastExportParameters?.let {
+                            export(it)
+                        }
+                        isFlyoutVisible = false
+                    },
+                    icon = Icons.Default.SaveEdit,
+                    text = "Quick Export Texture",
+                    trailingText = "Ctrl+E",
+                    enabled = lastExportParameters != null
                 )
                 MenuFlyoutSeparator()
                 MenuFlyoutButton(
