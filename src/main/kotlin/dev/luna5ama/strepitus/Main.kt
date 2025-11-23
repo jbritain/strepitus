@@ -118,10 +118,10 @@ fun main() {
     val frameDispatcher = FrameDispatcher(glfwDispatcher) { renderFunc() }
     val state = GLFWWindowState()
     val appState = AppState(windowHandle, glfwDispatcher, scope)
-    appState.load()
+    appState.load(false)
 
     Runtime.getRuntime().addShutdownHook(Thread {
-        appState.save()
+        appState.save(false)
     })
 
     val renderer =

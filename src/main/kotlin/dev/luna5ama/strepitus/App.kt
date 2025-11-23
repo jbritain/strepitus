@@ -148,17 +148,17 @@ class AppState(
         dispatcher.stop()
     }
 
-    fun load() {
-        loadNoise(NOISE_CONFIG_PATH)
-        loadSystem(SYSTEM_CONFIG_PATH)
+    fun load(printError: Boolean = true) {
+        loadNoise(NOISE_CONFIG_PATH, printError)
+        loadSystem(SYSTEM_CONFIG_PATH, printError)
     }
 
-    fun save() {
-        saveNoise(NOISE_CONFIG_PATH)
-        saveSystem(SYSTEM_CONFIG_PATH)
+    fun save(printError: Boolean = true) {
+        saveNoise(NOISE_CONFIG_PATH, printError)
+        saveSystem(SYSTEM_CONFIG_PATH, printError)
     }
 
-    fun loadNoise(path: java.nio.file.Path) {
+    fun loadNoise(path: java.nio.file.Path, printError: Boolean = true) {
         runCatching {
             path.inputStream().use {
                 val config = JSON.decodeFromString<NoiseConfig>(path.readText())
@@ -169,12 +169,14 @@ class AppState(
                 noiseLayers.addAll(config.noiseLayers)
             }
         }.onFailure {
-            it.printStackTrace()
-            errorPrompts += "Failed to load noise config: ${it.message}"
+            if (printError) {
+                it.printStackTrace()
+                errorPrompts += "Failed to load noise config: ${it.message}"
+            }
         }
     }
 
-    fun saveNoise(path: java.nio.file.Path) {
+    fun saveNoise(path: java.nio.file.Path, printError: Boolean = true) {
         runCatching {
             lastSaved.set(changeCounter.get())
             val config = NoiseConfig(
@@ -185,8 +187,10 @@ class AppState(
             )
             path.writeText(JSON.encodeToString(config))
         }.onFailure {
-            it.printStackTrace()
-            errorPrompts += "Failed to save noise config: ${it.message}"
+            if (printError) {
+                it.printStackTrace()
+                errorPrompts += "Failed to save noise config: ${it.message}"
+            }
         }
     }
 
@@ -203,7 +207,7 @@ class AppState(
         )
     }
 
-    fun saveSystem(path: java.nio.file.Path) {
+    fun saveSystem(path: java.nio.file.Path, printError: Boolean = true) {
         runCatching {
             val config = SystemConfig(
                 persistentStates = persistentStates,
@@ -211,12 +215,14 @@ class AppState(
             )
             path.writeText(JSON.encodeToString(config))
         }.onFailure {
-            it.printStackTrace()
-            errorPrompts += "Failed to save system config: ${it.message}"
+            if (printError) {
+                it.printStackTrace()
+                errorPrompts += "Failed to save system config: ${it.message}"
+            }
         }
     }
 
-    fun loadSystem(path: java.nio.file.Path) {
+    fun loadSystem(path: java.nio.file.Path, printError: Boolean = true) {
         runCatching {
             path.inputStream().use {
                 val config = JSON.decodeFromString<SystemConfig>(path.readText())
@@ -224,8 +230,10 @@ class AppState(
                 systemParameters = config.systemParameters
             }
         }.onFailure {
-            it.printStackTrace()
-            errorPrompts += "Failed to load system config: ${it.message}"
+            if (printError) {
+                it.printStackTrace()
+                errorPrompts += "Failed to load system config: ${it.message}"
+            }
         }
     }
 
