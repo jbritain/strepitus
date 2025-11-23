@@ -243,7 +243,7 @@ class NoiseGeneratorRenderer(
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT)
     }
 
-    private val alwaysRegenerate = System.getProperty("strepitus.alwaysregen").toBoolean()
+    private val alwaysRegenerate = System.getenv("strepitus.alwaysregen").toBoolean()
 
     override fun draw() {
         context.flush()
