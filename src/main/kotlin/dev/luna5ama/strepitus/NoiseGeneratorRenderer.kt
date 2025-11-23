@@ -313,16 +313,15 @@ class NoiseGeneratorRenderer(
                     outputPath,
                     StandardOpenOption.CREATE,
                     StandardOpenOption.READ,
-                    StandardOpenOption.WRITE,
-                    StandardOpenOption.TRUNCATE_EXISTING
+                    StandardOpenOption.WRITE
                 ).use { fc ->
+                    fc.truncate(buffer.size)
                     val mappedBuffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, buffer.size)
                         .order(ByteOrder.nativeOrder())
                     val byteBuffer = mapped.ptr.asByteBuffer(mapped.len.toInt())
                     mappedBuffer.put(byteBuffer)
                 }
             }
-
             OutputFileFormat.PNG -> {
                 val channelCount = outputSpec.channels
                 val colorSpace = when (channelCount) {
