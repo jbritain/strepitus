@@ -75,6 +75,10 @@ class AppState(
                 recentProjects = new
             )
             openedFile0.value = value
+
+            persistentStates = persistentStates.copy(
+                lastProjectPath = value.parent
+            )
         }
 
     val openedFileNotDefault get() = openedFile.takeIf { it != NOISE_CONFIG_PATH }
@@ -238,7 +242,9 @@ class AppState(
 
     @Serializable
     data class PersistentStates(
-        val recentProjects: Set<@Serializable(PathSerilizer::class) java.nio.file.Path> = emptySet()
+        val recentProjects: Set<@Serializable(PathSerilizer::class) java.nio.file.Path> = emptySet(),
+        val lastProjectPath: @Serializable(PathSerilizer::class) java.nio.file.Path? = null,
+        val lastExportPath: @Serializable(PathSerilizer::class) java.nio.file.Path? = null
     ) {
         object PathSerilizer : KSerializer<java.nio.file.Path> {
             override val descriptor: SerialDescriptor
@@ -352,6 +358,9 @@ fun AppMenuBar(renderer: NoiseGeneratorRenderer, appState: AppState) {
         appState.scope.launch {
             runCatching {
                 renderer.saveImage(params.filePath, params.format)
+                appState.persistentStates = appState.persistentStates.copy(
+                    lastExportPath = params.filePath.parent
+                )
                 lastExportParameters = params
             }.onFailure { ex ->
                 appState.errorPrompts += "Failed to export image: ${ex.message}"
@@ -363,7 +372,7 @@ fun AppMenuBar(renderer: NoiseGeneratorRenderer, appState: AppState) {
         val filters = listOf(
             DialogFilter("Project File", listOf("json"))
         )
-        return when (val result = showSaveDialog(filters)) {
+        return when (val result = showSaveDialog(filters, defaultPath = appState.persistentStates.lastProjectPath)) {
             is DialogResult.Success -> {
                 runCatching {
                     appState.saveNoise(result.filePath)
@@ -388,9 +397,11 @@ fun AppMenuBar(renderer: NoiseGeneratorRenderer, appState: AppState) {
     }
 
     fun saveProject(): Boolean {
-        return (appState.openedFileNotDefault)?.let { path ->
+        return appState.openedFileNotDefault?.let { path ->
             runCatching {
                 appState.saveNoise(path)
+            }.onSuccess {
+                appState.openedFile = path
             }.onFailure {
                 it.printStackTrace()
                 appState.errorPrompts += "Failed to export image: ${it.message}"
@@ -402,7 +413,7 @@ fun AppMenuBar(renderer: NoiseGeneratorRenderer, appState: AppState) {
         val filters = listOf(
             DialogFilter("Project File", listOf("json"))
         )
-        when (val result = showOpenDialog(filters)) {
+        when (val result = showOpenDialog(filters, defaultPath = appState.persistentStates.lastProjectPath)) {
             is DialogResult.Success -> {
                 runCatching {
                     appState.loadNoise(result.filePath)
@@ -429,7 +440,7 @@ fun AppMenuBar(renderer: NoiseGeneratorRenderer, appState: AppState) {
         val filters = listOf(
             DialogFilter("${outputFormat.fullName} File", outputFormat.extensions)
         )
-        when (val result = showSaveDialog(filters)) {
+        when (val result = showSaveDialog(filters, defaultPath = appState.persistentStates.lastExportPath)) {
             is DialogResult.Success -> {
                 export(ExportParameters(outputFormat, result.filePath))
             }
