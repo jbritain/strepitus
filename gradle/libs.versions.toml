@@ -18,6 +18,7 @@ joml = "1.10.5"
 glWrapper = "1.1.0"
 kmogus = "1.1-SNAPSHOT"
 lwjgl3Awt = "0.2.3"
+jarOptimizer = "1.2.2"
 
 [plugins]
 kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
@@ -25,6 +26,7 @@ kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 compose = { id = "org.jetbrains.compose", version.ref = "compose" }
 compose-hotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "compose-hot-reload" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+jarOptimizer = { id = "dev.luna5ama.jar-optimizer", version.ref = "jarOptimizer" }
 
 [libraries]
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
