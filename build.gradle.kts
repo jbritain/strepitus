@@ -1,5 +1,5 @@
 group = "dev.luna5ama"
-version = "0.0.1-SNAPSHOT"
+version = "0.0.1"
 
 plugins {
     kotlin("jvm") version libs.versions.kotlin
@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.compose)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.compose.hotReload)
+    alias(libs.plugins.jarOptimizer)
 }
 
 java {
@@ -17,9 +18,10 @@ java {
     }
 }
 
+val mainClassName = "dev.luna5ama.strepitus.MainKt"
 compose.desktop {
     application {
-        mainClass = "dev.luna5ama.strepitus.MainKt"
+        mainClass = mainClassName
     }
 }
 
@@ -43,11 +45,16 @@ dependencies {
     implementation("org.lwjgl", "lwjgl-opengl")
     implementation("org.lwjgl", "lwjgl-stb")
     implementation("org.lwjgl", "lwjgl-nfd")
-    runtimeOnly("org.lwjgl", "lwjgl", classifier = "natives-windows")
-    runtimeOnly("org.lwjgl", "lwjgl-glfw", classifier = "natives-windows")
-    runtimeOnly("org.lwjgl", "lwjgl-opengl", classifier = "natives-windows")
-    runtimeOnly("org.lwjgl", "lwjgl-stb", classifier = "natives-windows")
-    runtimeOnly("org.lwjgl", "lwjgl-nfd", classifier = "natives-windows")
+    val platforms = listOf("linux", "windows")
+    platforms.forEach {
+        runtimeOnly("org.lwjgl", "lwjgl", classifier = "natives-$it")
+        runtimeOnly("org.lwjgl", "lwjgl-glfw", classifier = "natives-$it")
+        runtimeOnly("org.lwjgl", "lwjgl-opengl", classifier = "natives-$it")
+        runtimeOnly("org.lwjgl", "lwjgl-stb", classifier = "natives-$it")
+        runtimeOnly("org.lwjgl", "lwjgl-nfd", classifier = "natives-$it")
+
+        runtimeOnly("org.jetbrains.skiko:skiko-awt-runtime-$it-x64:0.9.22.2")
+    }
 
     implementation(libs.kotlinxSerializationCore)
     implementation(libs.kotlinxSerializationJson)
@@ -70,5 +77,38 @@ afterEvaluate {
     runDir.mkdir()
     tasks.withType<JavaExec>().configureEach {
         workingDir(runDir)
+    }
+}
+tasks {
+    val fatJar by registering(Jar::class) {
+        group = "build"
+
+        from(jar.get().archiveFile.map { zipTree(it) })
+        from(configurations.runtimeClasspath.get().elements.map { set ->
+            set.map {
+                if (it.asFile.isDirectory) it else zipTree(
+                    it
+                )
+            }
+        })
+
+        manifest {
+            attributes["Main-Class"] = mainClassName
+        }
+
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE
+
+        archiveClassifier.set("fatjar")
+    }
+
+    val optimizeFatJar = jarOptimizer.register(
+        fatJar,
+        "dev.luna5ama.strepitus",
+        "org.jetbrains.skia",
+        "kotlin.reflect"
+    )
+
+    artifacts {
+        archives(optimizeFatJar)
     }
 }

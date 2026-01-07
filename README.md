@@ -1,9 +1,10 @@
 # Strepitus
 Visual noise editor
 
-## Hardware Requirements
+## Requirements
 
-A GPU with proper OpenGL 4.6 support
+- A GPU with proper OpenGL 4.6 support
+- Java 21 or higher
 
 ## Build Instructions
 
